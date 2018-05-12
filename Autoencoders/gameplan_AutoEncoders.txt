@@ -9,9 +9,10 @@ FIRST
 @Talk to Rao about your idea.
 
 
-IMPORTANT CHANGES NEEDED: The source and target images confusion for different options. Like True to Noisy !! need the target image too.
-target_img = Input(shape=(28,28,1))
-UPDATE the loss functions to match that
+COMPLETE get_reward_String and input_output_type string for kmdl file names
+
+?? IS THERE A BETTER measure for image cross entropy. Where regularity and marked differences are better considered,
+rather than binary cross entropy. I THINK PIXEL WISE entropy will still capture that !!
 
 True to Noisy and lower reward may combat each other !! Especially if negative reward. Or maybe working in tandem. need xp.
 I think it will go against, because noisy image is to mislead, go in the wrong direction. But negative reward or less reward,

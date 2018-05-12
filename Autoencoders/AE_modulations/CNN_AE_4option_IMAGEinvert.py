@@ -11,7 +11,7 @@ from keras import metrics
 
 
 
-train_model = True
+train_model = False
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 RewardError = False
@@ -149,23 +149,24 @@ decoded = Conv2D(1,(3,3),activation='sigmoid',padding='same')(x)
 
 
 #compute the reward based loss
+
 if RewardError:
     if Array_Error:
-        xent_loss = metrics.binary_crossentropy(input_img, decoded)
+        xent_loss = metrics.binary_crossentropy(target_img, decoded)
     else:
-        xent_loss = K.mean(metrics.binary_crossentropy(input_img, decoded))
+        xent_loss = K.mean(metrics.binary_crossentropy(target_img, decoded))
 
     reward_based_loss = input_reward * xent_loss
-    autoencoder = Model(inputs=[input_img, input_reward], outputs=[decoded])
+    autoencoder = Model(inputs=[target_img, input_img, input_reward], outputs=[decoded])
     autoencoder.add_loss(reward_based_loss)
     autoencoder.compile(optimizer=optimizer_type)
 else:#not reward error
     if Array_Error:
-        xent_loss = metrics.binary_crossentropy(input_img, decoded)
+        xent_loss = metrics.binary_crossentropy(target_img, decoded)
     else:#not array error
-        xent_loss = K.mean(metrics.binary_crossentropy(input_img, decoded))
+        xent_loss = K.mean(metrics.binary_crossentropy(target_img, decoded))
 
-    autoencoder = Model(input_img, decoded)
+    autoencoder = Model([target_img,input_img], decoded)
     autoencoder.add_loss(xent_loss)
     autoencoder.compile(optimizer=optimizer_type)
 
@@ -187,12 +188,12 @@ else:
         source_images = x_train_target
 
     if RewardError:
-        autoencoder.fit([source_images,x_train_reward],epochs=5,batch_size=25,
+        autoencoder.fit([target_images,source_images,x_train_reward],epochs=5,batch_size=25,
                         shuffle=True,validation_data=([x_test,x_test_reward],None))
                 # ,callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
     else:
-        autoencoder.fit(source_images,epochs=5,batch_size=25,
-                        shuffle=True,validation_data=(x_test,None))
+        autoencoder.fit([target_images,source_images],epochs=5,batch_size=25,
+                        shuffle=True,validation_data=([x_test,x_test],None))
 
 
 
@@ -203,17 +204,17 @@ else:
 
 
 if Predict_on_test:
-    encoded_imgs = encoder.predict([x_test,x_test])
+    encoded_imgs = encoder.predict(x_test)
     if RewardError:
         decoded_imgs = autoencoder.predict([x_test,x_test,x_test_reward])
     else:
-        decoded_imgs = autoencoder.predict(x_test)
+        decoded_imgs = autoencoder.predict([x_test,x_test])
 else:
-    encoded_imgs = encoder.predict([x_train_original,x_train_original])
+    encoded_imgs = encoder.predict(x_train_original)
     if RewardError:
         decoded_imgs = autoencoder.predict([x_train_original,x_train_original,x_train_reward])
     else:
-        decoded_imgs = autoencoder.predict(x_train_original)
+        decoded_imgs = autoencoder.predict([x_train_original,x_train_original])
 
 
 #find the indices of two of each class
