@@ -1,0 +1,3 @@
+
+
+Next: look at the stateful version of the lstm tutorial

@@ -1,0 +1,2 @@
+
+Tensor board is accessible from keras, and easy enough to use. See CNN AE

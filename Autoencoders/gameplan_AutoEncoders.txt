@@ -1,0 +1,69 @@
+
+Source
+https://blog.keras.io/building-autoencoders-in-keras.html
+
+
+=====================================================================
+
+FIRST
+@Talk to Rao about your idea.
+
+
+IMPORTANT CHANGES NEEDED: The source and target images confusion for different options. Like True to Noisy !! need the target image too.
+target_img = Input(shape=(28,28,1))
+UPDATE the loss functions to match that
+
+True to Noisy and lower reward may combat each other !! Especially if negative reward. Or maybe working in tandem. need xp.
+I think it will go against, because noisy image is to mislead, go in the wrong direction. But negative reward or less reward,
+put into the error signal means it will either go in the right/different direction and SLOWER. slower may not be a bad thing.
+
+NO NEED TO CHANGE loss function with the input output option. IF tRUE to noisy is the choice (I think) then the current
+loss function is good. So it True to True, and noisy to noisy.
+ <NOT NEEDED> But if Noisy to True, then the output(decoded) should be compared to the True value. BUT
+ YOU WOULD ONLY WANT THIS, FOR HIGH REWARD CASES!! I.E. if the reward is high need to be able to reconstruct it.
+ This could be useful, OR HAVE it as a preprocessing step to denoise. UNNECESSARY FOR NOW.
+
+
+IMPORTANT
+@MAYBE NEGATIVE reward is what causes noise. Because we want to FORGET that. So it would be TRUE to NOISE. Option 2
+
+
+NOTE, your original error was SINGLE value for ALL pixels. Your modified error was an error for each pixel value.
+NOT A FAIR comparison.
+TRY BOTH:
+Single error, vs Array Error. Codify the options.
+
+INVERT THE IMAGE , BASED on the reward. That is the noise for B/W ? and draw attention.
+So even 0 reward, matters, it gets COMPLETELY inverted. So feature extraction is more important.
+Or NN dmay just learn when to invert.
+
+<Write for later>
+CAN ADD a reward LAYER / CHANNEL rather than just a single value. So the error is the crossentropy of the images
+AFTER multiplying the reward with the input and output (or some other way). Thus a low or 0 reward region does not
+contribute much. This allows specifying bounding boxes and assigning relative values.
+<remember> the reward is not available during testing.
+
+
+1) Add sparsity (flatten, fc layer, sparsity, reshape)
+2)DO VIZ DOOM
+
+REWARD-error and SPARSITY may work well ??
+
+<WRITE DOWN> REWARD can be zero when TESTING
+
+MNIST is not ideal due to high feature overlap across all cases, and how some 8s are written like 1s.
+Even in basic vizdoom, the distinction is a little more clear. i.e. gun far away from monster, or near monster.
+
+COLORIZATION FOR READABILITY. HUMAN Interpretable.
+Could use blue and red for colored reconstruction !! All low reward images go to blue. All high reward goes to RED
+
+
+Stacked Autoencoder ? with CNN style.. Hmmm... write for later
+
+EXPERIMENT
+CAN you feed a partly recovered image repeatedly , and see if the number is recovered from it ??
+EASIER experiment.  THIS IS KINDA EM. MAYBE makes sense wrt to preferences too.
+Train on 4 and 7.
+
+
+

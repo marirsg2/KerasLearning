@@ -1,0 +1,18 @@
+
+
+0.
+When a layer is initialized with an input, the output is a TENSOR object THAT is ??
+ALSO connected to layer !!! .
+the input is also a TENSOR object. To manipulate these, need to use the backend
+functions , such as when you want to calculate the mean and such.
+
+1. You can write a function and have a "lambda" layer in keras
+
+2. Check out the many loss functions, including cosine proximity, read carefully before use)
+
+3. You can define your own loss function quite easily. See the "Variational_AE" script
+
+4. See Variational_AE.py , in the fit function. Notice how the input is only one,
+and there is no other output. The reason is that the input depends on the LOSS FUNCTION.
+Here the loss function only needs "x" one input, and everything else is derived
+from that. There is no other input needed. Aha !!

@@ -1,0 +1,21 @@
+
+
+
+
+======================================
+Pooling layers
+
+QUESTION:
+How is error propagated in max pooling vs average pooling
+
+NOTES:
+1) MAX vs AVG pooling: Max pooling is often used. Average pooling is sometimes used in very deep NN. Need more info.
+2) PADDING: You can have padding in max pooling. Same meaning as in convolutions.
+The same padding ADDS zeros so that there are no uncovered rows or columns.
+Valid padding does not add zeros, and some rows and columns are dropped because the
+convolution does not go over them due to size mismatch.
+
+
+
+
+======================================
