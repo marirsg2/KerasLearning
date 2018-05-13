@@ -34,20 +34,24 @@ dict_num_reward = {0:0,     1:0.3,    2:0,    3:0,    4:0.3,    5:0,    6:0,    
 
 
 def get_reward_string():
-    pass
-    # string_repr = ""
-    # for key
+    string_repr = "_"
+    for key in dict_num_reward.keys():
+        if dict_num_reward[key] > 0:
+            string_repr +=  str(key) + str(dict_num_reward[key]).split(".")[-1] + "_"
+    return string_repr[:-1]
+    #--end for
 
 def get_input_output_type_string():
-    pass
+    return
+
 
 model_weights_file_name = "weights_CNN_AE"
 if RewardError: model_weights_file_name += "_RewErr"
 if Resample: model_weights_file_name += "_Rsmpl"
 if Sparsity: model_weights_file_name += "_Sprs"
 if Array_Error: model_weights_file_name += "_ArrErr"
-model_weights_file_name += "_" + str(InputToOutputType)
-model_weights_file_name += "_13_43_81" + ".kmdl"
+model_weights_file_name += "_" + "inOutType" + str(InputToOutputType)
+model_weights_file_name += get_reward_string() + ".kmdl"
 
 # model_weights_file_name = "CNN_ae_weights_ResampleOcclude_NoiseToNoise_148.kmdl"
 
