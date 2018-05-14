@@ -8,16 +8,12 @@ import random as rand
 import copy
 from keras import backend as K
 from keras import metrics
-import pickle
 
 
-data_source_file_name = "vizdoom_memory_30_45.p"
 
 train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
-batch_size = 1
-num_epochs = 5
 RewardError = True
 #todo add support for negative reward values
 Resample = True
@@ -28,9 +24,7 @@ InputToOutputType = 2 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy 
                     #occlude , which is not really our goal
 Occlude = InputToOutputType != 1
 Sparsity  = False
-Array_Error = True
-Invert_Img_Negative = False
-Negative_Error_From_Reward = True #todo set to false as default
+Array_Error = False
 Predict_on_test = True
 
 # dict_num_reward = {0:1,     1:1,    2:1,    3:1,    4:1,    5:1,    6:1,    7:1,    8:1,  9:1}
@@ -47,6 +41,9 @@ def get_reward_string():
     return string_repr[:-1]
     #--end for
 
+def get_input_output_type_string():
+    return
+
 
 model_weights_file_name = "weights_CNN_AE"
 if RewardError: model_weights_file_name += "_RewErr"
@@ -54,11 +51,10 @@ if Resample: model_weights_file_name += "_Rsmpl"
 if Sparsity: model_weights_file_name += "_Sprs"
 if Array_Error: model_weights_file_name += "_ArrErr"
 model_weights_file_name += "_" + "inOutType" + str(InputToOutputType)
-model_weights_file_name += "_" + optimizer_type + "_" + str(batch_size)
 model_weights_file_name += get_reward_string() + ".kmdl"
 
 # model_weights_file_name = "CNN_ae_weights_ResampleOcclude_NoiseToNoise_148.kmdl"
-#=============================================
+
 #prep the data
 (x_train,y_train) , (x_test,y_test) = mnist.load_data()
 x_train = x_train[0:int(len(x_train)*fraction_of_data)]
@@ -72,8 +68,6 @@ print (x_train.shape)
 print (x_test.shape)
 
 
-#=============================================
-
 def keep_sample_by_reward(index, reward):
     #introduce noise into each pixel with probability determined noise_factor
     #done by first generating noise value over an array of zeros, and then
@@ -83,7 +77,7 @@ def keep_sample_by_reward(index, reward):
 
         main_image = x_train[index]
         #if image is negative, invert the image
-        if reward < 0 and Invert_Img_Negative:
+        if reward < 0:
             main_image = 1-main_image
             main_image = np.abs(main_image)
 
@@ -105,7 +99,7 @@ def keep_sample_by_reward(index, reward):
 def mnist_reward(in_value):
     # for pure dict values
     return dict_num_reward[in_value]
-
+    #todo add support for negative values
 #=============================
 if Resample:
     new_x_train_indices = [keep_sample_by_reward(i, mnist_reward(y_train[i])) for i in range(x_train.shape[0])]
@@ -125,9 +119,9 @@ y_train = y_train[new_x_train_indices]
 x_train_reward = np.array([mnist_reward(y_train[i]) for i in range(len(y_train))])
 x_test_reward = np.array([mnist_reward(y_test[i]) for i in range(len(y_test))])
 
-if not Negative_Error_From_Reward:
-    x_train_reward = np.abs(x_train_reward)
-    x_test_reward = np.abs(x_test_reward)
+
+x_train_reward = np.abs(x_train_reward)
+x_test_reward = np.abs(x_test_reward)
 
 # encoding_dim = 32
 input_img = Input(shape=(28,28,1))
@@ -215,11 +209,11 @@ else:
         source_images = x_train_target
 
     if RewardError:
-        autoencoder.fit([target_images,source_images,x_train_reward],epochs=num_epochs ,batch_size=batch_size,
+        autoencoder.fit([target_images,source_images,x_train_reward],epochs=5,batch_size=25,
                         shuffle=True,validation_data=([x_test,x_test,x_test_reward],None))
                 # ,callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
     else:
-        autoencoder.fit([target_images,source_images],epochs=num_epochs ,batch_size=batch_size,
+        autoencoder.fit([target_images,source_images],epochs=5,batch_size=25,
                         shuffle=True,validation_data=([x_test,x_test],None))
 
 

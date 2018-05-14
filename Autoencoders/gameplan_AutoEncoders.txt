@@ -9,11 +9,40 @@ FIRST
 @Talk to Rao about your idea.
 
 
-COMPLETE get_reward_String and input_output_type string for kmdl file names
+VIZDOOM
 
-?? IS THERE A BETTER measure for image cross entropy. Where regularity and marked differences are better considered,
-rather than binary cross entropy. I THINK PIXEL WISE entropy will still capture that !!
+-ve reward, if the image is inverted, the -ve reward should not be there.
 
+EXAMPLE:
+dict_num_reward = {0:0,     1:-0.3,    2:0,    3:0,    4:-0.3,    5:0,    6:0,    7:0,    8:1,  9:0}
+THEN we see that 0,3,9 it sees as close to 8 (Similar features, INTENDED) with and we dont want 3s
+dict_num_reward = {0:0,     1:-0.3,    2:0,    3:-1,    4:-0.3,    5:0,    6:0,    7:0,    8:1,  9:0}
+
+VIZDOOM
+
+IMPORTANT
+sgd 1, negative reward seems to work to isolate images.
+adadelta batch 1, negative reward fails. All goes to black.
+
+OVERALL/GOAL: Preferences, larger feature extraction, explicable, correctable,
+not only is it extracting larger features, but determining THE RULES when to reconstruct and HOW ! (eg: if two circles
+= 8, and as inverted image)
+THIS IS especially so in NON-images, where artifacts and inadvertent correlations are more likely IN VALUE FUNCTION CALCULATION. Like the preference
+of  Temperature to 65F maybe associated value calculation without really having to consider the other values. But this is a relic/artifact of the data.
+If the temperature is 40F, but other features are good combinations, then the value should be higher.
+So the AE, encodes PREFERENTIAL sub-spaces (combinations of values that are preferred).
+It could capture arbitrary preferences as well as clusters of preferences.
+Arbitrary preferences is of the form (x = 1, x2 = 2, is good, but not x=1 and x2=2.1)
+Group /cluster preferences is of the form (  1<=x1<2 and 2<=x2<=5)
+The reward signal helps sample this
+
+
+The embedding maybe higher, more informative. a REWARD based EMBEDDING!!
+
+ALSO based on errors in first model, we can sample data with larger errors, and give that as training.
+So polar bear and snow classification.
+
+<CANCELLING effect between reward and noise>
 True to Noisy and lower reward may combat each other !! Especially if negative reward. Or maybe working in tandem. need xp.
 I think it will go against, because noisy image is to mislead, go in the wrong direction. But negative reward or less reward,
 put into the error signal means it will either go in the right/different direction and SLOWER. slower may not be a bad thing.
