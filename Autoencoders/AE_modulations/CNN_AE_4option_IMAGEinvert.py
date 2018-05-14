@@ -11,7 +11,7 @@ from keras import metrics
 import pickle
 
 
-data_source_file_name = "vizdoom_memory_30_45.p"
+
 
 train_model = True
 fraction_of_data = 1.0

@@ -11,13 +11,13 @@ from keras import metrics
 import pickle
 from sklearn import preprocessing
 
-data_source_file_name = "vizdoom_memory_28_28.p"
+data_source_file_name = "vizdoom_memory_52_52.p"
 
 train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 25
-num_epochs = 10
+num_epochs = 5
 RewardError = False
 #todo add support for negative reward values
 Resample = False
@@ -162,8 +162,6 @@ x = UpSampling2D((2,2))(x)
 x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
 x = UpSampling2D((2,2))(x)
 #todo NOTICE there is no padding here, to match the dimensions needed.
-x = Conv2D(16,(3,3),activation='relu')(x)
-x = UpSampling2D((2,2))(x)
 x = Conv2D(16,(3,3),activation='relu')(x)
 x = UpSampling2D((2,2))(x)
 decoded = Conv2D(1,(3,3),activation='relu',padding='same')(x)
