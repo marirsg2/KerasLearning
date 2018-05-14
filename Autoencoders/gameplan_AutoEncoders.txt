@@ -8,8 +8,13 @@ https://blog.keras.io/building-autoencoders-in-keras.html
 FIRST
 @Talk to Rao about your idea.
 
+EVEN at 100x100, can you noise out the other images and only display those images that have positive reward.
+IMPORTANT So the Panel should be noised out, BUT the monster and gun firing are clear.
 
-VIZDOOM
+VIZDOOM - Display the mse.
+MNIST - Try Mean squared error as well, esp with the noise.
+
+DISPLAY THE RECONSTRUCTION cross entropy in the image title
 
 -ve reward, if the image is inverted, the -ve reward should not be there.
 

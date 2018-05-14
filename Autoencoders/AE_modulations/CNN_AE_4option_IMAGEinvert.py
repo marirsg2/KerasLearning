@@ -9,6 +9,7 @@ import copy
 from keras import backend as K
 from keras import metrics
 import pickle
+from sklearn.metrics import mean_squared_error as mse
 
 
 
@@ -18,6 +19,7 @@ fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 1
 num_epochs = 5
+error_function = metrics.binary_crossentropy
 RewardError = True
 #todo add support for negative reward values
 Resample = True
@@ -29,8 +31,8 @@ InputToOutputType = 2 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy 
 Occlude = InputToOutputType != 1
 Sparsity  = False
 Array_Error = True
-Invert_Img_Negative = False
-Negative_Error_From_Reward = True #todo set to false as default
+Invert_Img_Negative = True
+Negative_Error_From_Reward = False #todo set to false as default
 Predict_on_test = True
 
 # dict_num_reward = {0:1,     1:1,    2:1,    3:1,    4:1,    5:1,    6:1,    7:1,    8:1,  9:1}
@@ -179,10 +181,10 @@ decoded = Conv2D(1,(3,3),activation='sigmoid',padding='same')(x)
 
 if RewardError:
     if Array_Error:
-        xent_loss = metrics.binary_crossentropy(target_img, decoded)
+        xent_loss = error_function(target_img, decoded)
         reward_based_loss = input_reward_reshaped* xent_loss
     else:
-        xent_loss = K.mean(metrics.binary_crossentropy(target_img, decoded))
+        xent_loss = K.mean(error_function(target_img, decoded))
         reward_based_loss = input_reward * xent_loss
 
     autoencoder = Model(inputs=[target_img, input_img, input_reward], outputs=[decoded])
@@ -190,9 +192,9 @@ if RewardError:
     autoencoder.compile(optimizer=optimizer_type)
 else:#not reward error
     if Array_Error:
-        xent_loss = metrics.binary_crossentropy(target_img, decoded)
+        xent_loss = error_function(target_img, decoded)
     else:#not array error
-        xent_loss = K.mean(metrics.binary_crossentropy(target_img, decoded))
+        xent_loss = K.mean(error_function(target_img, decoded))
 
     autoencoder = Model([target_img,input_img], decoded)
     autoencoder.add_loss(xent_loss)
@@ -281,15 +283,21 @@ for i in range(n):
     ax = plt.subplot(2,n,i+1)
 
     if Predict_on_test:
-        plt.imshow(x_test[target_indices[i]].reshape(28,28))
+        source_images = x_test
     else:
-        plt.imshow(x_train_original[target_indices[i]].reshape(28,28))
+        source_images = x_train_original
+    plt.imshow(source_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
+
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(True)#just for fun
     #display reconstruction
     ax = plt.subplot(2,n,i+1+n)
-    plt.imshow(decoded_imgs[target_indices[i]].reshape(28,28))
+    plt.imshow(decoded_imgs[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
+    a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
+    b = decoded_imgs[target_indices[i]].reshape(source_images[0].shape[:-1])
+    final_mse = mse(a,b)
+    plt.title("mse=", str(final_mse))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
