@@ -1,5 +1,6 @@
 from keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape, RepeatVector
 from keras.models import Model
+from keras import optimizers
 from keras.datasets import mnist
 from keras import regularizers
 import numpy as np
@@ -11,19 +12,19 @@ from keras import metrics
 import pickle
 from sklearn.metrics import mean_squared_error as mse
 
-data_source_file_name = "vizdoom_memory_100_100.p"
+data_source_file_name = "vizdoom_memory_148_148.p"
 
-train_model = False
+train_model = True
 fraction_of_data = 1.0
-optimizer_type = 'adadelta'
-batch_size = 25
-num_epochs = 2
+optimizer_type = 'sgd'
+learning_rate = 0.00001
+batch_size = 1
+num_epochs = 5
 error_function = metrics.mean_squared_error
 RewardError = False
-#todo add support for negative reward values
-Resample = False
+RewardBasedResampling = True
 #noisy to noisy only matters if occlude is true
-InputToOutputType = 1 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
+InputToOutputType = 2 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
                     #the other option is True input to noisy output. Noisy to Noisy makes sense only because we never truly train
                     #on weaker images, we noise them , so pay less importance. if it is True to noisy, then we are learning to
                     #occlude , which is not really our goal
@@ -32,7 +33,10 @@ Sparsity  = False
 Array_Error = True
 Invert_Img_Negative = False
 Negative_Error_From_Reward = False #todo set to false as default
-Predict_on_test = True
+Predict_on_test = False
+Resample = False
+if RewardBasedResampling or Occlude or Invert_Img_Negative:
+    Resample = True
 
 
 """
@@ -74,7 +78,7 @@ if Resample: model_weights_file_name += "_Rsmpl"
 if Sparsity: model_weights_file_name += "_Sprs"
 if Array_Error: model_weights_file_name += "_ArrErr"
 model_weights_file_name += "_" + "inOutType" + str(InputToOutputType)
-model_weights_file_name += "_" + optimizer_type + "_" + str(batch_size)
+model_weights_file_name += "_" + optimizer_type + "_" + str(learning_rate) +"_" + str(batch_size)
 model_weights_file_name += "_" +  str(x_train.shape[1])+ "by" + str(x_train.shape[2])
 model_weights_file_name += ".kmdl"
 
@@ -123,6 +127,55 @@ new_x_train_indices = new_x_train_indices[:int(len(new_x_train_indices)/batch_si
 x_train_target = x_train[new_x_train_indices]
 x_train_original = x_train_original[new_x_train_indices]
 x_train_reward = np.array([reward[i] for i in new_x_train_indices])
+
+
+
+#===========================================================
+#===========================================================
+#
+# target_indices = []
+# curr_index = rand.randint(10,100)
+# target_indices = range(curr_index,2*(curr_index+10))
+
+# import matplotlib.pyplot as plt
+# n=20 #number of images to be displayed
+# plt.figure(figsize=(20,4))
+#
+# for i in range(n):
+#     if i >= len(target_indices):
+#         break
+#     ax = plt.subplot(2,n,i+1)
+#     if Predict_on_test:
+#         source_images = x_test
+#     else:
+#         source_images = x_train_target
+#     plt.imshow(source_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
+#
+#     plt.gray()
+#     ax.get_xaxis().set_visible(False)
+#     ax.get_yaxis().set_visible(True)#just for fun
+#     #display reconstruction
+#     ax = plt.subplot(2,n,i+1+n)
+#     plt.imshow(source_images[target_indices[2*i]].reshape(x_train.shape[1], x_train.shape[2]))
+#     a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
+#     b = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
+#     final_mse = mse(a,b)
+#     plt.title("mse=")#, str(final_mse))
+#     plt.gray()
+#     ax.get_xaxis().set_visible(False)
+#     ax.get_yaxis().set_visible(False)
+# plt.show()
+
+#===========================================================
+#===========================================================
+
+
+
+
+
+
+
+
 
 
 if not Negative_Error_From_Reward:
@@ -185,7 +238,7 @@ if RewardError:
 
     autoencoder = Model(inputs=[target_img, input_img, input_reward], outputs=[decoded])
     autoencoder.add_loss(reward_based_loss)
-    autoencoder.compile(optimizer=optimizer_type)
+
 else:#not reward error
     if Array_Error:
         original_loss = error_function(target_img, decoded)
@@ -194,7 +247,12 @@ else:#not reward error
 
     autoencoder = Model([target_img,input_img], decoded)
     autoencoder.add_loss(original_loss)
-    autoencoder.compile(optimizer=optimizer_type)
+
+optimizer_instance = optimizers.Adadelta()
+if optimizer_type == "sgd":
+    optimizer_instance = optimizers.SGD(lr=learning_rate)
+
+autoencoder.compile(optimizer=optimizer_instance)
 
 #encoder model
 encoder = Model (input_img,encoded)
@@ -233,16 +291,16 @@ if Predict_on_test:
     else:
         decoded_imgs = autoencoder.predict([x_test,x_test])
 else:
-    encoded_imgs = encoder.predict(x_train_original)
+    encoded_imgs = encoder.predict(x_train_target)
     if RewardError:
-        decoded_imgs = autoencoder.predict([x_train_original,x_train_original,x_train_reward])
+        decoded_imgs = autoencoder.predict([x_train_target,x_train_target,x_train_reward])
     else:
-        decoded_imgs = autoencoder.predict([x_train_original,x_train_original])
+        decoded_imgs = autoencoder.predict([x_train_target,x_train_target])
 
 
 
 target_indices = []
-curr_index = rand.randint(100,1000)
+curr_index = rand.randint(0,100)
 target_indices = range(curr_index,curr_index+10)
 
 
@@ -256,12 +314,10 @@ for i in range(n):
     if i >= len(target_indices):
         break
     ax = plt.subplot(2,n,i+1)
-
-
     if Predict_on_test:
         source_images = x_test
     else:
-        source_images = x_train_original
+        source_images = x_train_target
     plt.imshow(source_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
 
     plt.gray()
@@ -273,7 +329,7 @@ for i in range(n):
     a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
     b = decoded_imgs[target_indices[i]].reshape(source_images[0].shape[:-1])
     final_mse = mse(a,b)
-    plt.title("mse=", str(final_mse))
+    plt.title("mse=")#, str(final_mse))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)

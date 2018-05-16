@@ -11,7 +11,13 @@ FIRST
 EVEN at 100x100, can you noise out the other images and only display those images that have positive reward.
 IMPORTANT So the Panel should be noised out, BUT the monster and gun firing are clear.
 
-VIZDOOM - Display the mse.
+SEND THE VIZDOOM IMAGES TO BLACK !! rather than noise ??
+
+maybe sgd with low lr, will produce the result you want. I THINK YOU NEED more positive instances as well
+as a quick cheat, square the reward and make that the probability of sampling. Test it. Should see fewer images of noise.
+!!!!!! GOAL: hazy other images, BUT for the high reward case, we have a clearer image.
+
+VIZDOOM -
 MNIST - Try Mean squared error as well, esp with the noise.
 
 DISPLAY THE RECONSTRUCTION cross entropy in the image title
