@@ -3,3 +3,7 @@ There are only 39 positive samples
 
 1) Training with negative samples as positive ones, seemed to work.
 
+2) ADADELTA seemed to work over sgd. Was it luck and the right batch size to capture the signal
+
+3) WAIT !! instead of negative reward, what about NON-neg (Abs) reward WITH NOISING.
+    So partial features that could have given positive reward will still be captured !!

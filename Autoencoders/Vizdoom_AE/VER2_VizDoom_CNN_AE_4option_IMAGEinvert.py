@@ -15,11 +15,11 @@ import math
 
 data_source_file_name = "vizdoom_memory_100_100.p"
 
-train_model = False
+train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 learning_rate = 0.0001
-batch_size = 5
+batch_size = 20
 num_epochs = 10
 min_num_data_points = 1000
 error_function = metrics.mean_squared_error
@@ -110,7 +110,6 @@ def keep_sample_by_reward():
             # prob_sampling
             cutoff = np.random.rand()
             if cutoff < prob_sampling or RewardBasedResampling == False:
-                print(curr_reward, " ", cumulative_reward, " ",index)
                 cumulative_reward += curr_reward#ONLY UPDATE if it was successfully sampled
                 main_image = copy.deepcopy(x_train[index])
 
@@ -315,7 +314,7 @@ else:
         decoded_imgs = autoencoder.predict([x_train_target,x_train_target])
 
 
-n=20 #number of images to be displayed
+n=40 #number of images to be displayed
 if Predict_on_test:
     source_images = x_test
     source_reward = x_test_reward
@@ -323,7 +322,7 @@ else:
     source_images = x_train_target
     source_reward = x_train_reward
 
-target_indices = [i for i in range(source_reward.shape[0]) if source_reward[i] < 0]
+target_indices = [i for i in range(source_reward.shape[0]) if source_reward[i] > 0]
 # target_indices = []
 # curr_index = rand.randint(0,100)
 # target_indices = range(curr_index,curr_index+n)

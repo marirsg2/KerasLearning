@@ -110,7 +110,6 @@ def keep_sample_by_reward():
             # prob_sampling
             cutoff = np.random.rand()
             if cutoff < prob_sampling or RewardBasedResampling == False:
-                print(curr_reward, " ", cumulative_reward, " ",index)
                 cumulative_reward += curr_reward#ONLY UPDATE if it was successfully sampled
                 main_image = copy.deepcopy(x_train[index])
 
@@ -323,7 +322,7 @@ else:
     source_images = x_train_target
     source_reward = x_train_reward
 
-target_indices = [i for i in range(source_reward.shape[0]) if source_reward[i] < 0]
+target_indices = [i for i in range(source_reward.shape[0]) if source_reward[i] > 0]
 # target_indices = []
 # curr_index = rand.randint(0,100)
 # target_indices = range(curr_index,curr_index+n)

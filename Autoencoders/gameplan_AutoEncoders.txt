@@ -14,38 +14,15 @@ IMPORTANT So the Panel should be noised out, BUT the monster and gun firing are 
 
 
 How can you expect to distinguish when the AE does not have enough capacity!!
+HIGHER embedding space, MORE fc for filtering properly
+
+WAIT !! instead of negative reward, what about NON-neg (Abs) reward WITH NOISING.
 
 WTF!! adadelta with batch size 5, and 10 epochs worked !!
 
 @) Try IMAGENET dataset and filter on flowers
 
-0) Increase capacity till you can see the details of the monster. LARGED embedding space
-0.5) There are only 39 positive samples. Since you take the "set" operation, you lose duplicates.
-         try training on the negative.
-
- 1)  In VIZDOOM, repeat the 39 images (?maybe with some weak noise, later)
-        and then predict on negative samples.
-        AFTER training on just positive samples. THEN train on positive and NEGATIVE
-
-
-
-   2) Flip reward signal and train.
-
-
-@) I WORRY that the images between positive and negative reward are too similar for the NN to distinguish.
-      AHA ! try removing negative samples that have too similar crossentropy to all the positive ones. need baseline
-Now try only training on positive instances and reproducing the negative ones
-I think the problem is that there are more negative ones, or that the black image is the perfect balance for neg and positive reward
-@2) Try skewing the sampling more to the positive cases.
-@3) try the non-array error
-
-
- ?what about trying BINARY CROSS ENTROPY IN vizdoom too ! UNLIKELY. tHE TRUE pixels are not black and white.
-
- ? WHat about averaging the noise with the image. Random noise, then superimpose on the picture.
- Then take the absolute value (so no negative values). SEE the result too, to make sure it is what you think it is.
- This maybe better that random pixel removal.
-
+@) Adding occlusion makes it better ? Nah, negative reward seems to work well enough. pushes to black ?
 
 "based on reward randomly black out pixels, and that is the goal w which you need to comopare the output. I guess it already is creating the filter"w
 MORE fc layers in the middle for processing the conditions to filter or reproduce. Think "detecting when gun aligned with monster"
