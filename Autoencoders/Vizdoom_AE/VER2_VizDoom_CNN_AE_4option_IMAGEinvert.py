@@ -96,27 +96,28 @@ model_weights_file_name += ".kmdl"
 cumulative_reward = 0.0
 def keep_sample_by_reward():
 
-    global cumulative_reward,x_train_target,x_train_original,x_train_reward
+    global cumulative_reward,x_train_target,x_train_original,x_train_reward,reward
     sampled_xtrain_target = []
     sampled_x_train_original = []
     sampled_x_train_reward = []
     while len(sampled_x_train_reward) < min_num_data_points:
-        index_list = np.random.shuffle(np.array(list(range(x_train.shape[0]))))
+        index_list = np.array(list(range(x_train.shape[0])))
+        np.random.shuffle(index_list)
         for index in index_list:
             curr_reward = reward[index]
             # formula for (sampling) = e ^ (-1 * sum * reward) / e ^ (| sum |)
-            prob_sampling = math.exp(-1*cumulative_reward*reward)/math.exp(abs(cumulative_reward))
+            prob_sampling = math.exp(-1*cumulative_reward*curr_reward)/math.exp(abs(cumulative_reward))
             # prob_sampling
             cutoff = np.random.rand()
             if cutoff < prob_sampling or RewardBasedResampling == False:
-                print(reward, " ", cumulative_reward, " ",index)
-                cumulative_reward += reward#ONLY UPDATE if it was successfully sampled
+                print(curr_reward, " ", cumulative_reward, " ",index)
+                cumulative_reward += curr_reward#ONLY UPDATE if it was successfully sampled
                 main_image = copy.deepcopy(x_train[index])
 
                 #also modify the image by adding noise based on (1-reward)
                 if Occlude:
                     noise_mask = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])
-                    noise_mask = np.less(noise_mask,1-abs(reward))  # so if the noise factor was 0.4 (reward = 0.6), then
+                    noise_mask = np.less(noise_mask,1-abs(curr_reward))  # so if the noise factor was 0.4 (reward = 0.6), then
                     # only those nodes where value is less than 0.4 will be 1
                     noise_layer = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])# THIS is the actual noise value. DIFFERENT from the one used to generate mask
                     # noise_layer = np.zeros(shape=(28, 28, 1)) #THIS is if you want the background to go to black.
