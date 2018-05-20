@@ -21,7 +21,7 @@ optimizer_type = 'sgd'
 learning_rate = 0.0001
 batch_size = 1
 num_epochs = 5
-min_data_points = 1000
+min_num_data_points = 1000
 error_function = metrics.mean_squared_error
 RewardError = True
 RewardBasedResampling = True
@@ -94,59 +94,54 @@ model_weights_file_name += ".kmdl"
 #=============================================
 
 cumulative_reward = 0.0
-def keep_sample_by_reward(index, reward):
+def keep_sample_by_reward():
 
-    global cumulative_reward
+    global cumulative_reward,x_train_target,x_train_original,x_train_reward
+    sampled_xtrain_target = []
+    sampled_x_train_original = []
+    sampled_x_train_reward = []
+    while len(sampled_x_train_reward) < min_num_data_points:
+        index_list = np.random.shuffle(np.array(list(range(x_train.shape[0]))))
+        for index in index_list:
+            curr_reward = reward[index]
+            # formula for (sampling) = e ^ (-1 * sum * reward) / e ^ (| sum |)
+            prob_sampling = math.exp(-1*cumulative_reward*reward)/math.exp(abs(cumulative_reward))
+            # prob_sampling
+            cutoff = np.random.rand()
+            if cutoff < prob_sampling or RewardBasedResampling == False:
+                print(reward, " ", cumulative_reward, " ",index)
+                cumulative_reward += reward#ONLY UPDATE if it was successfully sampled
+                main_image = copy.deepcopy(x_train[index])
 
-    if np.sum(x_train[index]) == 0:
-        print("Hmmm... mistake")
-
-    if np.sum(x_train[index]) < 2:
-        print ("Hmmm... mistake")
-
-
-    #p(sampling) = e ^ (-1 * sum * reward) / e ^ (| sum |)
-    prob_sampling = math.exp(-1*cumulative_reward*reward)/math.exp(abs(cumulative_reward))
-    # prob_sampling
-    cutoff = np.random.rand()
-    if cutoff < prob_sampling or RewardBasedResampling == False:
-        print(reward, " ", cumulative_reward, " ",index)
-        cumulative_reward += reward#ONLY UPDATE if it was successfully sampled
-        main_image = x_train[index]
-
-        #also modify the image by adding noise based on (1-reward)
-        if Occlude:
-            noise_mask = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])
-            noise_mask = np.less(noise_mask,1-abs(reward))  # so if the noise factor was 0.4 (reward = 0.6), then
-            # only those nodes where value is less than 0.4 will be 1
-            noise_layer = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])# THIS is the actual noise value. DIFFERENT from the one used to generate mask
-            # noise_layer = np.zeros(shape=(28, 28, 1)) #THIS is if you want the background to go to black.
-            x_train[index] = main_image*(1 - noise_mask) + noise_layer * noise_mask
-        return index
-    else:
-        return -1
+                #also modify the image by adding noise based on (1-reward)
+                if Occlude:
+                    noise_mask = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])
+                    noise_mask = np.less(noise_mask,1-abs(reward))  # so if the noise factor was 0.4 (reward = 0.6), then
+                    # only those nodes where value is less than 0.4 will be 1
+                    noise_layer = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])# THIS is the actual noise value. DIFFERENT from the one used to generate mask
+                    # noise_layer = np.zeros(shape=(28, 28, 1)) #THIS is if you want the background to go to black.
+                    main_image = main_image*(1 - noise_mask) + noise_layer * noise_mask
+                #save this
+                sampled_xtrain_target.append(main_image)
+                sampled_x_train_reward.append(curr_reward)
+                sampled_x_train_original.append(x_train_original[index])
+        #---END for loop through index of data points
+    #-end while loop
+    #now trim to the batch size
+    fitted_length = int(len(sampled_x_train_reward)/batch_size)*batch_size
+    x_train_target = np.array(sampled_xtrain_target[0:fitted_length])
+    x_train_original = np.array(sampled_x_train_original[0:fitted_length])
+    x_train_reward = np.array(sampled_x_train_reward[0:fitted_length])
 
 #=============================
 index_array = np.array(list(range(x_train.shape[0])))
 if Resample and train_model:
-    new_x_train_indices = []
-    while len(new_x_train_indices) < min_data_points:
-        cumulative_reward = 0.0
-        np.random.shuffle(index_array)#modifies in place
-        new_x_train_indices += [keep_sample_by_reward(i, reward[i]) for i in index_array]
-        try:
-            new_x_train_indices = [new_x_train_indices[i] for i in new_x_train_indices if new_x_train_indices[i] != -1]
-        except:
-            pass
+    keep_sample_by_reward()
 else: #dont resample
-    new_x_train_indices = range(x_train.shape[0])
-    new_x_train_indices = list(new_x_train_indices)
+    pass
 #=============================
-new_x_train_indices = new_x_train_indices[:int(len(new_x_train_indices)/batch_size)*batch_size] #for making sure we get batchsize divisible
-# new_x_train_indices = sorted(new_x_train_indices,reverse=False)
-x_train_target = x_train[new_x_train_indices]
-x_train_original = x_train_original[new_x_train_indices]
-x_train_reward = np.array([reward[i] for i in new_x_train_indices])
+
+
 print(" count positive reward samples = ", np.where(x_train_reward>0)[0].shape)
 print(" count negative reward samples = ", np.where(x_train_reward<0)[0].shape)
 print("average reward =", np.average(x_train_reward))
