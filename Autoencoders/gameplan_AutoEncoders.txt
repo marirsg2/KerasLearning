@@ -11,7 +11,22 @@ FIRST
 EVEN at 100x100, can you noise out the other images and only display those images that have positive reward.
 IMPORTANT So the Panel should be noised out, BUT the monster and gun firing are clear.
 
-SEND THE VIZDOOM IMAGES TO BLACK !! rather than noise ??
+@)
+REMOVE all indices with reward == 0.0 (these are the black ones)
+
+ ?what about trying BINARY CROSS ENTROPY IN vizdoom too ! UNLIKELY. tHE TRUE pixels are not black and white.
+
+ ? WHat about averaging the noise with the image. Random noise, then superimpose on the picture.
+ Then take the absolute value (so no negative values). SEE the result too, to make sure it is what you think it is.
+ This maybe better that random pixel removal.
+
+
+"based on reward randomly black out pixels, and that is the goal w which you need to comopare the output. I guess it already is creating the filter"w
+MORE fc layers in the middle for processing the conditions to filter or reproduce. Think "detecting when gun aligned with monster"
+
+What about separately training a network that produces a FILTER image, that is overlayed on the original to produce the
+result. So it only learns what to cover up. Either a black or static image.
+?? SEND THE VIZDOOM IMAGES TO BLACK !! rather than noise ??
 
 maybe sgd with low lr, will produce the result you want. I THINK YOU NEED more positive instances as well
 as a quick cheat, square the reward and make that the probability of sampling. Test it. Should see fewer images of noise.

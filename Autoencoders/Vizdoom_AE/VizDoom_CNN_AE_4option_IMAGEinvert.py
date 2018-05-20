@@ -11,8 +11,9 @@ from keras import backend as K
 from keras import metrics
 import pickle
 from sklearn.metrics import mean_squared_error as mse
+import math
 
-data_source_file_name = "vizdoom_memory_148_148.p"
+data_source_file_name = "vizdoom_memory_100_100.p"
 
 train_model = True
 fraction_of_data = 1.0
@@ -20,22 +21,22 @@ optimizer_type = 'sgd'
 learning_rate = 0.00001
 batch_size = 1
 num_epochs = 5
+min_data_points = 500
 error_function = metrics.mean_squared_error
-RewardError = False
+RewardError = True
 RewardBasedResampling = True
 #noisy to noisy only matters if occlude is true
-InputToOutputType = 2 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
+InputToOutputType = 1 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
                     #the other option is True input to noisy output. Noisy to Noisy makes sense only because we never truly train
                     #on weaker images, we noise them , so pay less importance. if it is True to noisy, then we are learning to
                     #occlude , which is not really our goal
 Occlude = InputToOutputType != 1
 Sparsity  = False
 Array_Error = True
-Invert_Img_Negative = False
-Negative_Error_From_Reward = False #todo set to false as default
+Negative_Error_From_Reward = True #todo set to false as default
 Predict_on_test = False
 Resample = False
-if RewardBasedResampling or Occlude or Invert_Img_Negative:
+if RewardBasedResampling or Occlude :
     Resample = True
 
 
@@ -45,8 +46,6 @@ InputToOutputType = 1
 Resample = False
 
 """
-
-
 
 
 # model_weights_file_name = "CNN_ae_weights_ResampleOcclude_NoiseToNoise_148.kmdl"
@@ -61,15 +60,24 @@ with open(data_source_file_name,"rb") as data_source:
     s2_images = pickle.load(data_source)
     reward = pickle.load(data_source)
 
+#REMOVE ALL IMAGES where reward == 0, ONLY BECAUSE In THIS DATA SET
+# REWARD = 0 means a black image in this data set
+non_zero_indices = np.where(reward != 0)[0]
+s1_images = s1_images[non_zero_indices]
+s2_images = s2_images[non_zero_indices]
+
 s1_images = s1_images.reshape(list(s1_images.shape)+[1])
 s2_images = s2_images.reshape(list(s2_images.shape)+[1])
 max_reward_value = np.max(np.abs(reward))
 reward = reward/max_reward_value
 x_train = s1_images
 x_train_original = copy.deepcopy(x_train)
+x_train_untouched = copy.deepcopy(x_train)
 x_test = x_train_original
 x_train_reward = reward
 x_test_reward = reward
+
+
 
 #=====================================================
 model_weights_file_name = "weights_CNN_AE"
@@ -84,19 +92,24 @@ model_weights_file_name += ".kmdl"
 
 #=============================================
 
+cumulative_reward = 0.0
 def keep_sample_by_reward(index, reward):
-    #introduce noise into each pixel with probability determined noise_factor
-    #done by first generating noise value over an array of zeros, and then
-    #AVERAGING the noise with the DATA.
 
+    global cumulative_reward
+
+    if np.sum(x_train[index]) == 0:
+        return -1
+
+    if np.sum(x_train[index]) < 2:
+        print ("Hmmm... mistake")
+
+
+    #p(sampling) = e ^ (-1 * sum * reward) / e ^ (| sum |)
+    prob_sampling = math.exp(-1*cumulative_reward*reward)/math.exp(abs(cumulative_reward))
     cutoff = np.random.rand()
-    if cutoff < abs(reward):
-
+    if cutoff < prob_sampling or RewardBasedResampling == False:
+        cumulative_reward += reward#ONLY UPDATE if it was successfully sampled
         main_image = x_train[index]
-        #if image is negative, invert the image
-        if reward < 0 and Invert_Img_Negative:
-            main_image = 1-main_image
-            main_image = np.abs(main_image)
 
         #also modify the image by adding noise based on (1-reward)
         if Occlude:
@@ -110,20 +123,26 @@ def keep_sample_by_reward(index, reward):
     else:
         return -1
 
-
 #=============================
+index_array = np.array(list(range(x_train.shape[0])))
 if Resample:
-    new_x_train_indices = [keep_sample_by_reward(i, reward[i]) for i in range(x_train.shape[0])]
-    new_x_train_indices  = set(new_x_train_indices)
-    try:
-        new_x_train_indices.remove(-1)
-    except:
-        pass
+    new_x_train_indices = []
+    while len(new_x_train_indices) < min_data_points:
+        cumulative_reward = 0.0
+        np.random.shuffle(index_array)#modifies in place
+        new_x_train_indices += [keep_sample_by_reward(i, reward[i]) for i in index_array]
+        new_x_train_indices = set(new_x_train_indices)
+        try:
+            new_x_train_indices.remove(-1)
+            new_x_train_indices = list(new_x_train_indices)
+        except:
+            pass
 else: #dont resample
     new_x_train_indices = range(x_train.shape[0])
+    new_x_train_indices = list(new_x_train_indices)
 #=============================
-new_x_train_indices = list(new_x_train_indices)
 new_x_train_indices = new_x_train_indices[:int(len(new_x_train_indices)/batch_size)*batch_size] #for making sure we get batchsize divisible
+# new_x_train_indices = sorted(new_x_train_indices,reverse=False)
 x_train_target = x_train[new_x_train_indices]
 x_train_original = x_train_original[new_x_train_indices]
 x_train_reward = np.array([reward[i] for i in new_x_train_indices])
@@ -133,48 +152,41 @@ x_train_reward = np.array([reward[i] for i in new_x_train_indices])
 #===========================================================
 #===========================================================
 #
-# target_indices = []
-# curr_index = rand.randint(10,100)
-# target_indices = range(curr_index,2*(curr_index+10))
+target_indices = []
+curr_index = rand.randint(10,100)
+target_indices = range(curr_index,2*(curr_index+10))
 
-# import matplotlib.pyplot as plt
-# n=20 #number of images to be displayed
-# plt.figure(figsize=(20,4))
-#
-# for i in range(n):
-#     if i >= len(target_indices):
-#         break
-#     ax = plt.subplot(2,n,i+1)
-#     if Predict_on_test:
-#         source_images = x_test
-#     else:
-#         source_images = x_train_target
-#     plt.imshow(source_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
-#
-#     plt.gray()
-#     ax.get_xaxis().set_visible(False)
-#     ax.get_yaxis().set_visible(True)#just for fun
-#     #display reconstruction
-#     ax = plt.subplot(2,n,i+1+n)
-#     plt.imshow(source_images[target_indices[2*i]].reshape(x_train.shape[1], x_train.shape[2]))
-#     a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
-#     b = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
-#     final_mse = mse(a,b)
-#     plt.title("mse=")#, str(final_mse))
-#     plt.gray()
-#     ax.get_xaxis().set_visible(False)
-#     ax.get_yaxis().set_visible(False)
-# plt.show()
+import matplotlib.pyplot as plt
+n=20 #number of images to be displayed
+plt.figure(figsize=(20,4))
+
+for i in range(n):
+    if i >= len(target_indices):
+        break
+    ax = plt.subplot(2,n,i+1)
+    if Predict_on_test:
+        source_images = x_test
+        source_reward = x_test_reward
+    else:
+        source_images = x_train_target
+        source_reward = x_train_reward
+    plt.imshow(source_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
+    plt.title(str(source_reward[target_indices[i]]))
+    plt.gray()
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(True)#just for fun
+    #display reconstruction
+    ax = plt.subplot(2,n,i+1+n)
+    plt.imshow(source_images[target_indices[2*i]].reshape(x_train.shape[1], x_train.shape[2]))
+    # final_mse = mse(a,b)#TODO PRINT MSE
+    plt.title(str(source_reward[target_indices[2*i]]))
+    plt.gray()
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+plt.show()
 
 #===========================================================
 #===========================================================
-
-
-
-
-
-
-
 
 
 
