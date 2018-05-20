@@ -15,7 +15,7 @@ import math
 
 data_source_file_name = "vizdoom_memory_100_100.p"
 
-train_model = False
+train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 learning_rate = 0.0001
@@ -23,8 +23,8 @@ batch_size = 10
 num_epochs = 10
 min_num_data_points = 1000
 error_function = metrics.mean_squared_error
-RewardError = True
-RewardBasedResampling = True
+RewardError = False
+RewardBasedResampling = False
 #noisy to noisy only matters if occlude is true
 InputToOutputType = 1 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
                     #the other option is True input to noisy output. Noisy to Noisy makes sense only because we never truly train
@@ -33,7 +33,7 @@ InputToOutputType = 1 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy 
 Occlude = InputToOutputType != 1
 Sparsity  = False
 Array_Error = True
-Negative_Error_From_Reward = True #todo set to false as default
+Negative_Error_From_Reward = False#todo set to false as default
 Predict_on_test = False
 Resample = False
 if RewardBasedResampling or Occlude :
@@ -209,8 +209,8 @@ if RewardError:
 
 x = Conv2D(16,(3,3),activation='relu', padding='same')(input_img)
 x = MaxPooling2D((2,2),padding='same')(x)
-x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
-x = MaxPooling2D((2,2),padding='same')(x)
+# x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
+# x = MaxPooling2D((2,2),padding='same')(x)
 x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
 encoded = MaxPooling2D((2,2),padding='same')(x)
 #NOW we are in the middle
@@ -228,8 +228,8 @@ encoded = Reshape(middle_shape)(dense_layer)
 #now invert the process
 x = Conv2D(8,(3,3),activation='relu', padding='same')(encoded)
 x = UpSampling2D((2,2))(x)
-x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
-x = UpSampling2D((2,2))(x)
+# x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
+# x = UpSampling2D((2,2))(x)
 #todo NOTICE there is no padding here, to match the dimensions needed.
 x = Conv2D(16,(3,3),activation='relu')(x)
 x = UpSampling2D((2,2))(x)
@@ -322,7 +322,7 @@ else:
     source_images = x_train_target
     source_reward = x_train_reward
 
-target_indices = [i for i in range(source_reward.shape[0]) if source_reward[i] < 0]
+target_indices = [i for i in range(source_reward.shape[0]) if source_reward[i] > 0]
 # target_indices = []
 # curr_index = rand.randint(0,100)
 # target_indices = range(curr_index,curr_index+n)

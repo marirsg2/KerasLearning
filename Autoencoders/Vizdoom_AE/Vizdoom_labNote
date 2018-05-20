@@ -1,9 +1,14 @@
 
 There are only 39 positive samples
 
+0) I still think first order is to ehance resolution of AE
+
 1) Training with negative samples as positive ones, seemed to work.
 
 2) ADADELTA seemed to work over sgd. Was it luck and the right batch size to capture the signal
+        I THINK it was having enough positive and negative samples !!
+
+        Maybe for every mini batch, it unravels the signals better. ?? VERY UNSURE
 
 3) WAIT !! instead of negative reward, what about NON-neg (Abs) reward WITH NOISING.
     So partial features that could have given positive reward will still be captured !!
