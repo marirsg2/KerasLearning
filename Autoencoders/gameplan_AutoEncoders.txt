@@ -16,15 +16,13 @@ IMPORTANT So the Panel should be noised out, BUT the monster and gun firing are 
 How can you expect to distinguish when the AE does not have enough capacity!!
 HIGHER embedding space, MORE fc for filtering properly
 
-1) Increase capacity (alt pieces of puzzle) make code less brittle with vars handling of dimensions. Write out approach
-
+1) Recompile in GPU mode and compare performance.
 
 2) WTF!! adadelta with batch size 5, and 10 epochs worked !!
         I think the ratio of positive to negative samples, and avg reward makes a difference.
         Find a way to control it, and add it to the kmdl name!!
 
 3) WAIT !! instead of negative reward, what about NON-neg (Abs) reward WITH NOISING.
-
 
 
 @) Try IMAGENET dataset and filter on flowers

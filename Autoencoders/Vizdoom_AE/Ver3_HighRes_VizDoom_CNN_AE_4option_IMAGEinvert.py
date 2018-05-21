@@ -13,13 +13,13 @@ import pickle
 from sklearn.metrics import mean_squared_error as mse
 import math
 
-data_source_file_name = "vizdoom_memory_100_100.p"
+data_source_file_name = "vizdoom_memory_148_148.p"
 
 train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 learning_rate = 0.0001
-batch_size = 10
+batch_size = 20
 num_epochs = 10
 min_num_data_points = 1000
 error_function = metrics.mean_squared_error
@@ -220,8 +220,11 @@ flat_layer_size = np.product(middle_shape)
 flat_layer = Flatten()(encoded)
 if Sparsity:
     dense_layer = Dense(flat_layer_size,activation="relu",activity_regularizer=regularizers.l1(10e-5))(flat_layer)
+
 else:
     dense_layer = Dense(flat_layer_size, activation="relu")(flat_layer)
+#todo remove increased fc layer capacity if needed. fc added for filtering
+dense_layer = Dense(flat_layer_size, activation="relu")(dense_layer)
 encoded = Reshape(middle_shape)(dense_layer)
 #NOW we are in the end of the AE
 # from 28x28, max pooled thrice with same padding. 28-14-7-4. 7->4 is with same padding
@@ -230,8 +233,8 @@ x = Conv2D(8,(3,3),activation='relu', padding='same')(encoded)
 x = UpSampling2D((2,2))(x)
 # x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
 # x = UpSampling2D((2,2))(x)
-#todo NOTICE there is no padding here, to match the dimensions needed.
-x = Conv2D(16,(3,3),activation='relu')(x)
+#todo ORIGNALLY, there was NO PADDING in this layer. So zeros dont get upsampled and put into the image
+x = Conv2D(16,(3,3),activation='relu',padding='same')(x)
 x = UpSampling2D((2,2))(x)
 decoded = Conv2D(1,(3,3),activation='relu',padding='same')(x)
 
@@ -314,7 +317,7 @@ else:
         decoded_imgs = autoencoder.predict([x_train_target,x_train_target])
 
 
-n=40 #number of images to be displayed
+n=5 #number of images to be displayed
 if Predict_on_test:
     source_images = x_test
     source_reward = x_test_reward
@@ -329,7 +332,7 @@ target_indices = [i for i in range(source_reward.shape[0]) if source_reward[i] >
 
 
 import matplotlib.pyplot as plt
-plt.figure(figsize=(20,4))
+plt.figure()#figsize=(20,4))
 plt.suptitle(model_weights_file_name)
 
 for i in range(n):
