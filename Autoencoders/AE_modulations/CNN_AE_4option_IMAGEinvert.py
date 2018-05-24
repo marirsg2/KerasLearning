@@ -12,7 +12,7 @@ import pickle
 from sklearn.metrics import mean_squared_error as mse
 
 
-train_model = True
+train_model = False
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 1
@@ -294,10 +294,10 @@ for i in range(n):
     #display reconstruction
     ax = plt.subplot(2,n,i+1+n)
     plt.imshow(decoded_imgs[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
-    a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
-    b = decoded_imgs[target_indices[i]].reshape(source_images[0].shape[:-1])
-    final_mse = mse(a,b)
-    plt.title("mse=", str(final_mse))
+    # a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
+    # b = decoded_imgs[target_indices[i]].reshape(source_images[0].shape[:-1])
+    # final_mse = mse(a,b)
+    # plt.title("mse=", str(final_mse))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)

@@ -13,18 +13,19 @@ import pickle
 from sklearn.metrics import mean_squared_error as mse
 import math
 
-data_source_file_name = "vizdoom_memory_148_148.p"
+data_source_file_name = "BasicMap_vizDOOM_148by148.p"
 
-train_model = True
+train_model = False
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
-learning_rate = 0.0001
-batch_size = 20
+# learning_rate = 0.0001
+batch_size = 5
 num_epochs = 10
 min_num_data_points = 1000
 error_function = metrics.mean_squared_error
-RewardError = False
-RewardBasedResampling = False
+RewardError = True
+Negative_Error_From_Reward = True#todo set to false as default
+RewardBasedResampling = True
 #noisy to noisy only matters if occlude is true
 InputToOutputType = 1 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
                     #the other option is True input to noisy output. Noisy to Noisy makes sense only because we never truly train
@@ -33,7 +34,6 @@ InputToOutputType = 1 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy 
 Occlude = InputToOutputType != 1
 Sparsity  = False
 Array_Error = True
-Negative_Error_From_Reward = False#todo set to false as default
 Predict_on_test = False
 Resample = False
 if RewardBasedResampling or Occlude :
@@ -62,10 +62,22 @@ with open(data_source_file_name,"rb") as data_source:
 
 #REMOVE ALL IMAGES where reward == 0, ONLY BECAUSE In THIS DATA SET
 # REWARD = 0 means a black image in this data set
-non_zero_indices = np.where(reward != 0)[0]
+# non_zero_indices = np.where(reward != 0)[0]
+non_zero_indices = []
+for idx in range(s1_images.shape[0]):
+    if np.sum(s1_images[idx]) != 0:
+        non_zero_indices.append(idx)
+
 s1_images = s1_images[non_zero_indices]
 s2_images = s2_images[non_zero_indices]
 reward = reward[non_zero_indices]
+
+#---todo crop the images so the bottom high entropy information panel does not appear
+
+s1_images = s1_images[:,0:100,0:100]
+s2_images = s2_images[:,0:100,0:100]
+
+#---end of cropping
 
 s1_images = s1_images.reshape(list(s1_images.shape)+[1])
 s2_images = s2_images.reshape(list(s2_images.shape)+[1])
@@ -87,7 +99,8 @@ if Resample: model_weights_file_name += "_Rsmpl"
 if Sparsity: model_weights_file_name += "_Sprs"
 if Array_Error: model_weights_file_name += "_ArrErr"
 model_weights_file_name += "_" + "inOutType" + str(InputToOutputType)
-model_weights_file_name += "_" + optimizer_type + "_" + str(learning_rate) +"_" + str(batch_size)
+model_weights_file_name += "_" + optimizer_type + "_" + "_" + str(batch_size)
+# model_weights_file_name += "_" + optimizer_type + "_" + str(learning_rate) +"_" + str(batch_size)
 model_weights_file_name += "_" +  str(x_train.shape[1])+ "by" + str(x_train.shape[2])
 model_weights_file_name += ".kmdl"
 
@@ -193,7 +206,7 @@ if not Negative_Error_From_Reward:
     x_train_reward = np.abs(x_train_reward)
     x_test_reward = np.abs(x_test_reward)
 
-# encoding_dim = 32
+
 input_img = Input(shape=x_train.shape[1:])
 target_img = Input(shape=x_train_target.shape[1:])
 if RewardError:
@@ -224,7 +237,7 @@ if Sparsity:
 else:
     dense_layer = Dense(flat_layer_size, activation="relu")(flat_layer)
 #todo remove increased fc layer capacity if needed. fc added for filtering
-dense_layer = Dense(flat_layer_size, activation="relu")(dense_layer)
+# dense_layer = Dense(flat_layer_size, activation="relu")(dense_layer)
 encoded = Reshape(middle_shape)(dense_layer)
 #NOW we are in the end of the AE
 # from 28x28, max pooled thrice with same padding. 28-14-7-4. 7->4 is with same padding
@@ -258,6 +271,7 @@ if RewardError:
     autoencoder = Model(inputs=[target_img, input_img, input_reward], outputs=[decoded])
     autoencoder.add_loss(reward_based_loss)
 
+
 else:#not reward error
     if Array_Error:
         original_loss = error_function(target_img, decoded)
@@ -267,11 +281,15 @@ else:#not reward error
     autoencoder = Model([target_img,input_img], decoded)
     autoencoder.add_loss(original_loss)
 
-optimizer_instance = optimizers.Adadelta()
-if optimizer_type == "sgd":
-    optimizer_instance = optimizers.SGD(lr=learning_rate)
 
-autoencoder.compile(optimizer=optimizer_instance)
+autoencoder.summary()
+
+# optimizer_instance = optimizers.Adadelta()
+# if optimizer_type == "sgd":
+#     optimizer_instance = optimizers.SGD()
+    # optimizer_instance = optimizers.SGD(lr=learning_rate)
+
+autoencoder.compile(optimizer=optimizer_type)
 
 #encoder model
 encoder = Model (input_img,encoded)
@@ -289,13 +307,20 @@ else:
     if InputToOutputType == 3 or InputToOutputType == 4:
         source_images = x_train_target
 
+
+
+
     if RewardError:
         autoencoder.fit([target_images,source_images,x_train_reward],epochs=num_epochs,batch_size=batch_size,
                         shuffle=True,validation_data=([x_test,x_test,x_test_reward],None))
+        # autoencoder.fit([target_images,source_images,x_train_reward],epochs=num_epochs,batch_size=batch_size,
+        #                 shuffle=True)
                 # ,callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
     else:
         autoencoder.fit([target_images,source_images],epochs=num_epochs,batch_size=batch_size,
                         shuffle=True,validation_data=([x_test,x_test],None))
+        # autoencoder.fit([target_images,source_images],epochs=num_epochs,batch_size=batch_size,
+        #                 shuffle=True)
 
     autoencoder.save_weights(model_weights_file_name)
     print(model_weights_file_name)

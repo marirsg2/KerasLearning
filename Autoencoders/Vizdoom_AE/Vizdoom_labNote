@@ -1,14 +1,39 @@
 
-There are only 39 positive samples
 
-0) I still think first order is to ehance resolution of AE
+=========CURRENT==============
 
-1) Training with negative samples as positive ones, seemed to work.
 
-2) ADADELTA seemed to work over sgd. Was it luck and the right batch size to capture the signal
+
+Basic now works with adadelta 5,10. The image was cropped.
+
+Try changing code to allow CONTINUED TRAINING. sAVE AND restore model weights. A secondary option
+to TRAIN MODEL is RESTORE MODEL.
+
+
+2) (@) Add a penalty to adjacent pixels being the same or very close.
+
+3) (@) WAIT !! instead of negative reward, what about NON-neg (Abs) reward WITH NOISING.
+    So partial features that could have given positive reward will still be captured !!
+
+5) Other tricks ? Batch norm , regularizers ?
+
+
+===========DATA====================
+
+0)! Adadelta worked after removing one fc layer. Seems like the memory restriction affects how large the model can be.
+
+0.5) ! adadelta on 148 seems to somewhat figure the monster. I think with DFC it will be much better
+
+1) There are only 39 positive samples. NO, this was incorrect , due to bad sampling
+
+1.5) sgd and adagrad work in regular image reconstruction. sgd worse than adagrad which atleast learns patches. Rmsprop seems to work as well as adadelta
+
+2) Adadelta does not work with 148x148 for regular image reconstruction ?because the validation set is too large.
+
+3) ADADELTA seemed to work for AE filtering. Was it luck and the right batch size to capture the signal
         I THINK it was having enough positive and negative samples !!
-
+        adadelta with batch size 5, and 10 epochs worked
         Maybe for every mini batch, it unravels the signals better. ?? VERY UNSURE
 
-3) WAIT !! instead of negative reward, what about NON-neg (Abs) reward WITH NOISING.
-    So partial features that could have given positive reward will still be captured !!
+4) SGD seemed to learn a black image for 100x100 and 148x148 ?? is it because batch size 25 does not work. Does SGD even take batch size ?
+  TRY with batch size = 1
