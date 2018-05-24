@@ -13,7 +13,7 @@ import pickle
 from sklearn.metrics import mean_squared_error as mse
 
 
-train_model = True
+train_model = False
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 5
@@ -86,8 +86,7 @@ def mnist_reward(in_value):
 cumulative_reward = 0.0
 x_test_reward = np.array([mnist_reward(y_test[i]) for i in range(len(y_test))]) #this is necessary for the test set
 x_train_reward = np.array([mnist_reward(y_train[i]) for i in range(len(y_train))]) #this is necessary for the train set
-x_train_target = None
-x_train_reward = None
+x_train_target = x_train_original
 
 def keep_sample_by_reward():
 
@@ -142,10 +141,10 @@ else: #dont resample
     pass
 #=============================
 
-
-print(" count positive reward samples = ", np.where(x_train_reward>0)[0].shape)
-print(" count negative reward samples = ", np.where(x_train_reward<0)[0].shape)
-print("average reward =", np.average(x_train_reward))
+if train_model:
+    print(" count positive reward samples = ", np.where(x_train_reward>0)[0].shape)
+    print(" count negative reward samples = ", np.where(x_train_reward<0)[0].shape)
+    print("average reward =", np.average(x_train_reward))
 
 # #=============================
 # if Resample and train_model:
