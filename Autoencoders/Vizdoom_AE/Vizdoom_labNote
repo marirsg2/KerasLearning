@@ -4,10 +4,17 @@
 
 
 
+AVERAGING(hazing) vs NOISING. for lower reward !! COMPARE, both are valid
+
 Basic now works with adadelta 5,10. The image was cropped.
+
+(@) Need penalty for high local entropy, and reducing it's value. MSE over patches vs, over pixels.
+!! one way is take the target, run a averaging filter over it (mark it as non trainable), and then compare the results.
+
 
 Try changing code to allow CONTINUED TRAINING. sAVE AND restore model weights. A secondary option
 to TRAIN MODEL is RESTORE MODEL.
+
 
 
 2) (@) Add a penalty to adjacent pixels being the same or very close.

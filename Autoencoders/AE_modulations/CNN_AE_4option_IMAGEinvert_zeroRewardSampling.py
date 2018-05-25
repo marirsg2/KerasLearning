@@ -13,7 +13,7 @@ import pickle
 from sklearn.metrics import mean_squared_error as mse
 
 
-train_model = False
+train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 5
@@ -32,7 +32,7 @@ Sparsity  = False
 Array_Error = True
 Invert_Img_Negative = False
 Negative_Error_From_Reward = True #todo set to false as default
-Predict_on_test = True
+Predict_on_test = False
 Resample = False
 if RewardBasedResampling or Occlude or Invert_Img_Negative:
     Resample = True
@@ -40,7 +40,7 @@ if RewardBasedResampling or Occlude or Invert_Img_Negative:
 # dict_num_reward = {0:1,     1:1,    2:1,    3:1,    4:1,    5:1,    6:1,    7:1,    8:1,  9:1}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0,    4:0,    5:0,    6:0,    7:0,    8:0,  9:0}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0.3,    4:0,    5:0,    6:0.3,    7:0,    8:1,  9:0}
-dict_num_reward = {0:0,     1:-0.3,    2:0,    3:0,    4:-0.5,    5:0,    6:0,    7:0,    8:1,  9:0 }
+dict_num_reward = {0:0,     1:-0.3,    2:0,    3:0,    4:-0.5,    5:0,    6:0,    7:-0.5,    8:1,  9:0 }
 
 
 def get_reward_string():
