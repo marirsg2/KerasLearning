@@ -1,5 +1,10 @@
 
 
+
+Overlay the numbers on a static image/uniform random, and see how the HE works.
+If not, then maybe train on static background, and see how black back ground works,
+Then try adding features to black background, like other numbers , smaller in different parts.
+
 @? remove zero error sample, or keep
 
 AVERAGING(hazing) vs NOISING. for lower reward !! COMPARE, both are valid
