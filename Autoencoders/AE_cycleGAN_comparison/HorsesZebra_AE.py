@@ -14,11 +14,11 @@ import scipy.ndimage as image_reader
 import os
 import matplotlib.pyplot as plt
 
-train_model = False
+train_model = True
 fraction_of_data = 1.0
-image_dimensions =[156,156]
-optimizer_type = 'rmsprop'
-batch_size = 25
+image_dimensions =[176,176]
+optimizer_type = 'sgd'
+batch_size = 1
 num_epochs = 20
 error_function = metrics.mse
 error_function_string = "mse"
@@ -43,7 +43,7 @@ if RewardBasedResampling or Occlude or Invert_Img_Negative:
 
 
 
-model_weights_file_name = "CycleGAN_orangeApple_AE"
+model_weights_file_name = "CycleGAN_HorsesZebra_AE"
 if RewardError: model_weights_file_name += "_RewErr"
 if Resample: model_weights_file_name += "_Rsmpl"
 if Sparsity: model_weights_file_name += "_Sprs"
@@ -58,10 +58,10 @@ model_weights_file_name += ".kmdl"
 #=============================================
 #prep the data
 #get the Oranges data set and train an autoencoder.
-train_dataset_source_A = "./CycleGAN_Dataset/datasets/apple2orange/trainA/"
-test_dataset_source_A = "./CycleGAN_Dataset/datasets/apple2orange/testA/"
-train_dataset_source_B = "./CycleGAN_Dataset/datasets/apple2orange/trainB/"
-test_dataset_source_B = "./CycleGAN_Dataset/datasets/apple2orange/testB/"
+train_dataset_source_B = "./CycleGAN_Dataset/datasets/horse2zebra/trainA/"
+test_dataset_source_B = "./CycleGAN_Dataset/datasets/horse2zebra/testA/"
+train_dataset_source_A = "./CycleGAN_Dataset/datasets/horse2zebra/trainB/"
+test_dataset_source_A = "./CycleGAN_Dataset/datasets/horse2zebra/testB/"
 
 train_source = train_dataset_source_A
 test_source = test_dataset_source_B

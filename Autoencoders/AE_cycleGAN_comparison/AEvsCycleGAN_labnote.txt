@@ -1,0 +1,13 @@
+
+
+Im guessing some of the haziness is unavoidable due to upsampling. End of story. BUT given the number of channels,
+MAYBE we can have enough information to make it work.
+
+OR reduce the upsampling.
+
+IMPROVE ACCURACY
+1) After training, filter the images that have the highest reproduction, these are probably the easiest and simplest
+images. Focus on these in training to get more accuracy with a smaller network.
+
+2) TEST WITH NET'S BEST IMAGE AE
+to see if your loss function was incorrect
