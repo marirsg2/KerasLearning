@@ -5,9 +5,21 @@ Try coding the replay minus training, by loading all weights.
 ====================================================================+
 QUESTIONS
 
+
+WHAT youre doing is stupid, you are asking the subsequent networks to PRESERVE THE ERROR !! RATHER THAN CORRECT.
+the true image reference is lost. In subsequent layers, you want to ADD the previous input and try to match the
+TRUE output. So the input is not the ERROR, but the TRUE image, yes INPUT, the output is then ADDED with the previous inputS (yes
+more than 1 input, the compound), and then compared with the true error.
+
 -1) YOUR ARRAY ERROR WAS SET TO BINARY CROSS ENTROPY !! FIX IT AND RETRY your array error. curiosity to understanding
 
 -0.5) RETRY LINEAR
+
+!!!) I think for the stacked approach to work, the error needs to be back propagated through the inputs to the
+prev versions of the stack too. So each intermediate output has 2 error signals, the comparison with the previous input,
+and the error through the forward layers.
+THIS may allow SINGLE HIDDEN NODES.  ?? do we (at each output) sum all previous outputs and compare with the original- YES !!
+I think so.
 
 0) Averaging and maxing may COMPRESS the information to higher order components
 
@@ -29,9 +41,10 @@ For the different levels of the AE.
 
 DONE:
 
+05/29/2018
 0) The negative numbers show up as white too !!
 
-1) Try tanh, Try linear activation funciton
-ANS: tanh worked ok. Linear did not.
+1) I think the max pool and upsample steps making the piece wise approach worse
 
-2) I think the max pool and upsample steps making the piece wise approach worse
+2) More layers and channels in the conv layers lets you do MORE with the values.
+interpret/divide it more, especially if you have >1 hidden value.

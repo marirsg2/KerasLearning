@@ -12,26 +12,28 @@ import math
 import pickle
 from sklearn.metrics import mean_squared_error as mse
 from skimage.transform import rescale, resize, downscale_local_mean
+import matplotlib.pyplot as plt
 
 train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
-batch_size = 5
-num_epochs = 10
-error_function = metrics.binary_crossentropy
-min_num_data_points = 3000
+batch_size = 20
+num_epochs = 2
+error_function = metrics.mse
+error_string = "mse"
 RewardError = True
 RewardBasedResampling = True
+min_num_resample_data_points = 10000
 #noisy to noisy only matters if occlude is true
-InputToOutputType = 1 #1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
+InputToOutputType = 1 #1-True to True  2-True to MODIFIED 3-MODIFIED to True  4-MODIFIED to MODIFIED
                     #the other option is True input to noisy output. Noisy to Noisy makes sense only because we never truly train
                     #on weaker images, we noise them , so pay less importance. if it is True to noisy, then we are learning to
                     #occlude , which is not really our goal
-Occlude = InputToOutputType != 1
+Occlude = False
 Sparsity  = False
 Array_Error = True
-Invert_Img_Negative = False
-Negative_Error_From_Reward = True #todo set to false as default
+Invert_Img_Negative = True
+Negative_Error_From_Reward = False #todo set to false as default
 Predict_on_test = True
 Resample = False
 if RewardBasedResampling or Occlude or Invert_Img_Negative:
@@ -40,7 +42,8 @@ if RewardBasedResampling or Occlude or Invert_Img_Negative:
 # dict_num_reward = {0:1,     1:1,    2:1,    3:1,    4:1,    5:1,    6:1,    7:1,    8:1,  9:1}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0,    4:0,    5:0,    6:0,    7:0,    8:0,  9:0}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0.3,    4:0,    5:0,    6:0.3,    7:0,    8:1,  9:0}
-dict_num_reward = {0:0,     1:-0.3,    2:0,    3:0,    4:-0.5,    5:0,    6:0,    7:0,    8:1,  9:0 }
+dict_num_reward = {0:0.05,     1:-0.7,    2:0.05,    3:0.05,    4:-0.7,    5:0.05,    6:0.05,    7:0.05,    8:1,  9:0.05 }
+
 
 
 def get_reward_string():
@@ -57,7 +60,10 @@ if RewardError: model_weights_file_name += "_RewErr"
 if Resample: model_weights_file_name += "_Rsmpl"
 if Sparsity: model_weights_file_name += "_Sprs"
 if Array_Error: model_weights_file_name += "_ArrErr"
+if Invert_Img_Negative: model_weights_file_name += "_InvImage"
 model_weights_file_name += "_" + "inOutType" + str(InputToOutputType)
+model_weights_file_name += "_" + "inOutType" + str(InputToOutputType)
+model_weights_file_name += "_" + "errorFunc" + error_string
 model_weights_file_name += "_" + optimizer_type + "_" + str(batch_size)
 model_weights_file_name += get_reward_string() + ".kmdl"
 
@@ -95,7 +101,7 @@ def keep_sample_by_reward():
     sampled_ytrain = []
     sampled_x_train_original = []
     sampled_x_train_reward = []
-    while len(sampled_x_train_reward) < min_num_data_points:
+    while len(sampled_x_train_reward) < min_num_resample_data_points:
         index_list = np.array(list(range(x_train.shape[0])))
         np.random.shuffle(index_list)
         for index in index_list:
@@ -118,6 +124,15 @@ def keep_sample_by_reward():
                     noise_layer = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])# THIS is the actual noise value. DIFFERENT from the one used to generate mask
                     # noise_layer = np.zeros(shape=(28, 28, 1)) #THIS is if you want the background to go to black.
                     main_image = main_image*(1 - noise_mask) + noise_layer * noise_mask
+
+                if True:#Invert_Img_Negative:
+                    if True:#curr_reward < 0:
+                        main_image = 1-main_image#yes this inverts mnist images
+                        # plt.figure()
+                        # plt.imshow(np.reshape(main_image,(28,28)))
+                        # plt.gray()
+                        # plt.show()
+                #end if invert image
                 #save this
                 sampled_xtrain_target.append(main_image)
                 sampled_ytrain.append(y_train[index])
@@ -219,23 +234,23 @@ decoded = Conv2D(1,(3,3),activation='sigmoid',padding='same')(x)
 
 if RewardError:
     if Array_Error:
-        xent_loss = error_function(target_img, decoded)
-        reward_based_loss = input_reward_reshaped* xent_loss
+        loss_value = error_function(target_img, decoded)
+        reward_based_loss = input_reward_reshaped * loss_value
     else:
-        xent_loss = K.mean(error_function(target_img, decoded))
-        reward_based_loss = input_reward * xent_loss
+        loss_value = K.mean(error_function(target_img, decoded))
+        reward_based_loss = input_reward * loss_value
 
     autoencoder = Model(inputs=[target_img, input_img, input_reward], outputs=[decoded])
     autoencoder.add_loss(reward_based_loss)
     autoencoder.compile(optimizer=optimizer_type)
 else:#not reward error
     if Array_Error:
-        xent_loss = error_function(target_img, decoded)
+        loss_value = error_function(target_img, decoded)
     else:#not array error
-        xent_loss = K.mean(error_function(target_img, decoded))
+        loss_value = K.mean(error_function(target_img, decoded))
 
     autoencoder = Model([target_img,input_img], decoded)
-    autoencoder.add_loss(xent_loss)
+    autoencoder.add_loss(loss_value)
     autoencoder.compile(optimizer=optimizer_type)
 
 #encoder model
@@ -325,14 +340,14 @@ for number in needed_numbers:
 #     source_images[i] = temp
 
 
-for i in target_indices: #This is for the original number with overlayed other numbers(UNSCALED)
-    main_image = source_images[i]
-    a_image = resize(source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2]),(28,14))
-    b_image = resize(source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2]),(28,14))
-    # c_image = source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2])
-    # d_image = source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2])
-    temp = np.concatenate((a_image,b_image),axis=1).reshape(x_train.shape[1], x_train.shape[2],x_train.shape[3])
-    source_images[i] = np.clip(main_image + temp, 0,1)
+# for i in target_indices: #This is for the original number with overlayed other numbers(UNSCALED)
+#     main_image = source_images[i]
+#     a_image = resize(source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2]),(28,14))
+#     b_image = resize(source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2]),(28,14))
+#     # c_image = source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2])
+#     # d_image = source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2])
+#     temp = np.concatenate((a_image,b_image),axis=1).reshape(x_train.shape[1], x_train.shape[2],x_train.shape[3])
+#     source_images[i] = np.clip(main_image + temp, 0,1)
 
 # for i in target_indices: #This is to overlay multiple versions of the same number
 #     main_image = source_images[i]
@@ -353,7 +368,7 @@ for i in target_indices: #This is for the original number with overlayed other n
 #     source_images[i] = np.clip(main_image + secondary_image, 0,1)
 
 
-import matplotlib.pyplot as plt
+
 n=20 #number of images to be displayed
 plt.figure(figsize=(20,4))
 plt.suptitle(model_weights_file_name)
