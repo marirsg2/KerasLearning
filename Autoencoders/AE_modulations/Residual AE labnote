@@ -1,0 +1,37 @@
+
+EXPERIMENTS
+
+Try coding the replay minus training, by loading all weights.
+====================================================================+
+QUESTIONS
+
+-1) YOUR ARRAY ERROR WAS SET TO BINARY CROSS ENTROPY !! FIX IT AND RETRY your array error. curiosity to understanding
+
+-0.5) RETRY LINEAR
+
+0) Averaging and maxing may COMPRESS the information to higher order components
+
+1) Try MORE iterations for harder numbers (see the error)
+and more epochs per iter when it can drop
+
+0.5) Does the number of "features" in the image affect number of hidden units needed.
+eg: 4 has 2 points for each line, and each point needs x and y.
+Then the number of variations require more information. eg: slant, sizes, etc.
+
+
+
+2) What are the single hidden node values for different 8's. Print on figures
+For the different levels of the AE.
+
+3) Try the CASCADED resnet !!
+
+====================================================================+
+
+DONE:
+
+0) The negative numbers show up as white too !!
+
+1) Try tanh, Try linear activation funciton
+ANS: tanh worked ok. Linear did not.
+
+2) I think the max pool and upsample steps making the piece wise approach worse

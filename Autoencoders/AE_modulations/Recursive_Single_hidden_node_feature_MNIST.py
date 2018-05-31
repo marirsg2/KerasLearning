@@ -9,15 +9,16 @@ import copy
 from keras import backend as K
 from keras import metrics
 import math
+import matplotlib.pyplot as plt
 import pickle
 from sklearn.metrics import mean_squared_error as mse
 from skimage.transform import rescale, resize, downscale_local_mean
 
-train_model = False
+train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
-batch_size = 5
-num_epochs = 8
+batch_size = 20
+num_epochs = 5
 error_function = metrics.binary_crossentropy
 min_num_data_points = 3000
 RewardError = False
@@ -32,7 +33,7 @@ Sparsity  = False
 Array_Error = True
 Invert_Img_Negative = False
 Negative_Error_From_Reward = False#todo set to false as default
-Predict_on_test = True
+Predict_on_test = False
 Resample = False
 if RewardBasedResampling or Occlude or Invert_Img_Negative:
     Resample = True
@@ -40,7 +41,7 @@ if RewardBasedResampling or Occlude or Invert_Img_Negative:
 # dict_num_reward = {0:1,     1:1,    2:1,    3:1,    4:1,    5:1,    6:1,    7:1,    8:1,  9:1}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0,    4:0,    5:0,    6:0,    7:0,    8:0,  9:0}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0.3,    4:0,    5:0,    6:0.3,    7:0,    8:1,  9:0}
-dict_num_reward = {0:0,     1:0,    2:0,    3:0,    4:0,    5:0,    6:0,    7:1,    8:0,  9:0 }
+dict_num_reward = {0:0,     1:0,    2:0,    3:0,    4:1,    5:0,    6:0,    7:0,    8:0,  9:0 }
 
 
 def get_reward_string():
@@ -52,14 +53,14 @@ def get_reward_string():
     #--end for
 
 
-model_weights_file_name = "Single_hidden_node_CNN_AE"
+model_weights_file_name = "RECURSIVE_1_hidden_node_CNN_AE"
 if RewardError: model_weights_file_name += "_RewErr"
 if Resample: model_weights_file_name += "_Rsmpl"
 if Sparsity: model_weights_file_name += "_Sprs"
 if Array_Error: model_weights_file_name += "_ArrErr"
 model_weights_file_name += "_" + "inOutType" + str(InputToOutputType)
 model_weights_file_name += "_" + optimizer_type + "_" + str(batch_size)
-model_weights_file_name += get_reward_string() + ".kmdl"
+model_weights_file_name += get_reward_string()
 
 # model_weights_file_name = "CNN_ae_weights_ResampleOcclude_NoiseToNoise_148.kmdl"
 #=============================================
@@ -87,6 +88,9 @@ cumulative_reward = 0.0
 x_test_reward = np.array([mnist_reward(y_test[i]) for i in range(len(y_test))]) #this is necessary for the test set
 x_train_reward = np.array([mnist_reward(y_train[i]) for i in range(len(y_train))]) #this is necessary for the train set
 x_train_target = x_train_original
+test_fitted_length = int(x_test.shape[0] / batch_size) * batch_size
+x_test = x_test[0:test_fitted_length]
+x_test_reward = x_test_reward[0:test_fitted_length]
 
 def keep_sample_by_reward():
 
@@ -132,6 +136,7 @@ def keep_sample_by_reward():
     x_train_reward = np.array(sampled_x_train_reward[0:fitted_length])
     y_train = np.array(sampled_ytrain[0:fitted_length])
 
+
 #=============================
 
 if Resample and train_model:
@@ -172,6 +177,20 @@ if not Negative_Error_From_Reward:
 # encoding_dim = 32
 input_img = Input(shape=(28,28,1))
 target_img = Input(shape=(28,28,1))
+
+"""
+NN design algo
+There are many repeat NN, each trained sequentially.
+1) Train v1, evaluate the results for the dataset.
+2) subtract the original dataset with the evaluated results. 
+3) Save v1 weights with _v1 suffix
+4) Reset the weights (? or not) and train the model on the modified dataset.
+5) Repeat
+
+Debug by looking at the resultant images wrt to the original or prev data set.
+Debug by only training on 8s to begin with.
+"""
+
 if RewardError:
     input_reward = Input(shape=(1,), name="reward")
     if Array_Error:
@@ -182,33 +201,43 @@ if RewardError:
         input_reward_repeated = RepeatVector(target_img_num_dims)(input_reward)
         input_reward_reshaped = Reshape(target_img_shape)(input_reward_repeated)
 
-x = Conv2D(1,(2,2),activation='relu')(input_img)
-# middle_shape = x.shape[1:]
-# middle_shape = [int(i) for i in middle_shape]
-# flat_layer_size = np.product(middle_shape)
+x = Conv2D(8,(2,2),activation='tanh')(input_img)
+
+# x = MaxPooling2D((2,2),padding='same')(x)
+# x = Conv2D(8,(2,2),activation='tanh')(x)
+# x = MaxPooling2D((2,2),padding='same')(x)
+# x = Conv2D(8,(2,2),activation='tanh')(x)
+
 flat_layer = Flatten()(x)
-dense_layer = Dense(1, activation="relu")(flat_layer)
-if Sparsity:
-    dense_layer = Dense(1,activation="relu",activity_regularizer=regularizers.l1(10e-5))(flat_layer)
+dense_layer = Dense(3, activation="tanh")(flat_layer)
 
-dense_feature_layer = Dense(int(28*28/4),activation="relu")(dense_layer)
-encoded = Reshape([14,14,1])(dense_feature_layer)
-x = Conv2D(1,(2,2),activation='relu',padding="same")(encoded)
-x = UpSampling2D((2,2))(x)
-decoded = Conv2D(1,(2,2),activation='relu',padding='same')(x)
+dense_feature_layer = Dense(int(28*28),activation="tanh")(dense_layer)
+encoded = Reshape([28,28,1])(dense_feature_layer)
+x = Conv2D(8,(2,2),activation='tanh',padding="same")(encoded)
+decoded = Conv2D(1,(2,2),activation='tanh',padding='same')(x)
 
 
-# # from 28x28, max pooled thrice with same padding. 28-14-7-4. 7->4 is with same padding
-# #now invert the process
-# x = Conv2D(8,(3,3),activation='relu', padding='same')(encoded)
+#todo revist this good config
+# x = Conv2D(16,(2,2),activation='tanh')(input_img)
+# x = MaxPooling2D((2,2),padding='same')(x)
+# x = Conv2D(8,(2,2),activation='tanh')(x)
+# x = MaxPooling2D((2,2),padding='same')(x)
+# x = Conv2D(8,(2,2),activation='tanh')(x)
+# # middle_shape = x.shape[1:]
+# # middle_shape = [int(i) for i in middle_shape]
+# # flat_layer_size = np.product(middle_shape)
+# flat_layer = Flatten()(x)
+# dense_layer = Dense(49, activation="tanh")(flat_layer)
+# if Sparsity:
+#     dense_layer = Dense(1,activation="tanh",activity_regularizer=regularizers.l1(10e-5))(flat_layer)
+#
+# dense_feature_layer = Dense(int(28*28/16),activation="tanh")(dense_layer)
+# encoded = Reshape([7,7,1])(dense_feature_layer)
+# x = Conv2D(8,(2,2),activation='tanh',padding="same")(encoded)
 # x = UpSampling2D((2,2))(x)
-# x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
+# x = Conv2D(16,(2,2),activation='tanh',padding="same")(x)
 # x = UpSampling2D((2,2))(x)
-# #todo NOTICE there is no padding here, to match the dimensions needed.
-# x = Conv2D(16,(3,3),activation='relu')(x)
-# x = UpSampling2D((2,2))(x)
-# decoded = Conv2D(1,(3,3),activation='sigmoid',padding='same')(x)
-
+# decoded = Conv2D(1,(2,2),activation='tanh',padding='same')(x)
 
 
 #compute the reward based loss
@@ -231,63 +260,22 @@ else:#not reward error
         xent_loss = K.mean(error_function(target_img, decoded))
 
     autoencoder = Model([target_img,input_img], decoded)
-    autoencoder.add_loss(xent_loss)
-    autoencoder.compile(optimizer=optimizer_type)
+    # autoencoder.add_loss(xent_loss)
+    autoencoder.compile(optimizer=optimizer_type,loss="mse")
 
 #encoder model
 encoder = Model (input_img,encoded)
 #decoder model
 
-if not train_model:
-    autoencoder.load_weights(filepath=model_weights_file_name)
-else:
-    # InputToOutputType = 4  # 1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
-    # x_train_original, x_train_target
-    source_images = x_train_original
-    target_images = x_train_original
-    if InputToOutputType == 2:
-        target_images = x_train_target
-    if InputToOutputType == 3 or InputToOutputType == 4:
-        source_images = x_train_target
-
-    if RewardError:
-        autoencoder.fit([target_images,source_images,x_train_reward],epochs=num_epochs ,batch_size=batch_size,
-                        shuffle=True,validation_data=([x_test,x_test,x_test_reward],None))
-                # ,callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
-    else:
-        autoencoder.fit([target_images,source_images],epochs=num_epochs ,batch_size=batch_size,
-                        shuffle=True,validation_data=([x_test,x_test],None))
-
-
-
-    autoencoder.save_weights(model_weights_file_name)
-    print(model_weights_file_name)
-#======= Done with training model,
-#===== now predict and display
-
-
-if Predict_on_test:
-    encoded_imgs = encoder.predict(x_test)
-    if RewardError:
-        decoded_imgs = autoencoder.predict([x_test,x_test,x_test_reward])
-    else:
-        decoded_imgs = autoencoder.predict([x_test,x_test])
-else:
-    encoded_imgs = encoder.predict(x_train_original)
-    if RewardError:
-        decoded_imgs = autoencoder.predict([x_train_original,x_train_original,x_train_reward])
-    else:
-        decoded_imgs = autoencoder.predict([x_train_original,x_train_original])
-
 
 #find the indices of two of each class
 # needed_numbers = [0,1,2,3,4,5,6,7,8,9]
-needed_numbers = [0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9]
-# needed_numbers = [8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8]
+# needed_numbers = [0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9]
+# needed_numbers =   [8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8]
 # needed_numbers = [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5]
-needed_numbers = [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+# needed_numbers = [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
 # needed_numbers =   [4,4,4,4,4,4,4,4,4,1,1,1,1,1,8,8,8,8,8,8]
-# needed_numbers = [i for i in dict_num_reward.keys() if dict_num_reward[i]>0]
+needed_numbers = [i for i in dict_num_reward.keys() if dict_num_reward[i]>0]
 needed_numbers = needed_numbers * 20 #this will be more than the images, but thats ok. There are checks in place to break out
 target_indices = []
 curr_index = rand.randint(100,1000)
@@ -298,7 +286,6 @@ source_images = x_train_target
 if Predict_on_test:
     y_target = y_test
     source_images = x_test
-
 for number in needed_numbers:
     while True:
         curr_index += 1
@@ -310,6 +297,130 @@ for number in needed_numbers:
             break
     #end while
 #end outer for
+
+
+
+if not train_model:
+    pass#todo fill the iterative load and evaluate here as well. OR BETTER create many copies of the model and load
+    # autoencoder.load_weights(filepath=model_weights_file_name)
+else:
+    # InputToOutputType = 4  # 1-True to True  2-True to Noisy 3-Noisy to True  4-Noisy to Noisy
+    # x_train_original, x_train_target
+    source_images = x_train_original
+    target_images = x_train_original
+    if InputToOutputType == 2:
+        target_images = x_train_target
+    if InputToOutputType == 3 or InputToOutputType == 4:
+        source_images = x_train_target
+
+    #todo THINK IF THIS IS GOOD. I think it is, so all the AE units start form the same place/connected
+    autoencoder.save_weights("default_init_weights.kmdl")
+    output_images_iter_list = []
+    output_images_testSet_iter_list = []
+
+    if train_model == False:
+        for i in range(3):
+            autoencoder.save_weights(model_weights_file_name + "_L" + str(i) + ".kmdl")
+
+
+    else:
+        for i in range(3):
+            autoencoder.load_weights("default_init_weights.kmdl")
+            if RewardError:
+                autoencoder.fit([source_images,target_images,x_train_reward],epochs=num_epochs ,batch_size=batch_size,
+                                shuffle=True,validation_data=([x_test,x_test,x_test_reward],None))
+                        # ,callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
+            else:
+                autoencoder.fit([source_images,target_images],source_images,epochs=num_epochs ,batch_size=batch_size,
+                                shuffle=True,validation_data=([x_test,x_test],x_test))
+            autoencoder.save_weights(model_weights_file_name+"_L"+str(i)+".kmdl")
+            #now update the data for the next iteration.
+            output_images = autoencoder.predict([source_images,target_images])
+            output_images_iter_list.append(output_images)
+            output_images_testSet = autoencoder.predict([x_test, x_test])
+            output_images_testSet_iter_list.append(output_images_testSet)
+
+            n = 20  # number of images to be displayed
+            plt.figure(figsize=(20, 4))
+            plt.suptitle(model_weights_file_name)
+            for i in range(n):
+                if i >= len(target_indices):
+                    break
+                ax = plt.subplot(2, n, i + 1)
+
+                plt.imshow(source_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
+
+                plt.gray()
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(True)  # just for fun
+                # display reconstruction
+                ax = plt.subplot(2, n, i + 1 + n)
+                plt.imshow(output_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
+                # a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
+                # b = decoded_imgs[target_indices[i]].reshape(source_images[0].shape[:-1])
+                # final_mse = mse(a,b)
+                # plt.title("mse=", str(final_mse))
+                plt.gray()
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+            plt.show()
+
+            source_images = source_images - output_images
+            target_images = source_images
+            x_test = x_test - output_images_testSet
+
+
+            # n = 20  # number of images to be displayed
+            # plt.figure(figsize=(20, 4))
+            # plt.suptitle(model_weights_file_name)
+            # for i in range(n):
+            #     if i >= len(target_indices):
+            #         break
+            #     ax = plt.subplot(2, n, i + 1)
+            #
+            #     plt.imshow(source_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
+            #
+            #     plt.gray()
+            #     ax.get_xaxis().set_visible(False)
+            #     ax.get_yaxis().set_visible(True)  # just for fun
+            #     # display reconstruction
+            #     ax = plt.subplot(2, n, i + 1 + n)
+            #     plt.imshow(output_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
+            #     # a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
+            #     # b = decoded_imgs[target_indices[i]].reshape(source_images[0].shape[:-1])
+            #     # final_mse = mse(a,b)
+            #     # plt.title("mse=", str(final_mse))
+            #     plt.gray()
+            #     ax.get_xaxis().set_visible(False)
+            #     ax.get_yaxis().set_visible(False)
+            # plt.show()
+
+
+#======= Done with training model,
+#===== now predict and display
+
+
+decoded_imgs = output_images_iter_list[0]
+for delta_set in output_images_iter_list[1:]:
+    decoded_imgs += delta_set
+
+
+
+# if Predict_on_test:
+#     encoded_imgs = encoder.predict(x_test)
+#     if RewardError:
+#         decoded_imgs = autoencoder.predict([x_test,x_test,x_test_reward])
+#     else:
+#         decoded_imgs = autoencoder.predict([x_test,x_test])
+# else:
+#     encoded_imgs = encoder.predict(x_train_original)
+#     if RewardError:
+#         decoded_imgs = autoencoder.predict([x_train_original,x_train_original,x_train_reward])
+#     else:
+#         decoded_imgs = autoencoder.predict([x_train_original,x_train_original])
+
+
+
 
 
 #TODO CHANGE THE image to be overlayed on a static background, vs black background.
@@ -351,7 +462,7 @@ for number in needed_numbers:
 #     source_images[i] = np.clip(main_image + secondary_image, 0,1)
 
 
-import matplotlib.pyplot as plt
+
 n=20 #number of images to be displayed
 plt.figure(figsize=(20,4))
 plt.suptitle(model_weights_file_name)

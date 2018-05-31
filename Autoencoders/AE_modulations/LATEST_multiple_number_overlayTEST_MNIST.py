@@ -13,7 +13,7 @@ import pickle
 from sklearn.metrics import mean_squared_error as mse
 from skimage.transform import rescale, resize, downscale_local_mean
 
-train_model = False
+train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 5
@@ -255,11 +255,11 @@ else:
         source_images = x_train_target
 
     if RewardError:
-        autoencoder.fit([target_images,source_images,x_train_reward],epochs=num_epochs ,batch_size=batch_size,
+        autoencoder.fit([source_images,target_images,x_train_reward],epochs=num_epochs ,batch_size=batch_size,
                         shuffle=True,validation_data=([x_test,x_test,x_test_reward],None))
                 # ,callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
     else:
-        autoencoder.fit([target_images,source_images],epochs=num_epochs ,batch_size=batch_size,
+        autoencoder.fit([source_images,target_images],epochs=num_epochs ,batch_size=batch_size,
                         shuffle=True,validation_data=([x_test,x_test],None))
 
 
