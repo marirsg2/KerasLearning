@@ -20,7 +20,7 @@ optimizer_type = 'adadelta'
 batch_size = 20
 num_epochs = 5
 error_function = metrics.mse
-min_num_data_points = 6000
+min_num_data_points = 3000
 RewardError = False
 RewardBasedResampling = True
 #noisy to noisy only matters if occlude is true
@@ -169,22 +169,48 @@ Debug by looking at the resultant images wrt to the original or prev data set.
 Debug by only training on 8s to begin with.
 """
 
-
 x = Conv2D(8,(2,2),activation='tanh')(input_img)
-
-# x = MaxPooling2D((2,2),padding='same')(x)
-# x = Conv2D(8,(2,2),activation='tanh')(x)
-# x = MaxPooling2D((2,2),padding='same')(x)
-# x = Conv2D(8,(2,2),activation='tanh')(x)
 
 flat_layer = Flatten()(x)
 dense_layer = Dense(1, activation="tanh")(flat_layer)
 
-dense_feature_layer = Dense(int(28*28),activation="tanh")(dense_layer)
-encoded = Reshape([28,28,1])(dense_feature_layer)
+dense_feature_layer = Dense(int(14*14),activation="tanh")(dense_layer)
+encoded = Reshape([14,14,1])(dense_feature_layer)
 x = Conv2D(8,(2,2),activation='tanh',padding="same")(encoded)
+x = UpSampling2D((2,2))(x)
 decoded = Conv2D(1,(2,2),activation='tanh',padding='same')(x)
 decoded = Add()([decoded,prev_approx_img])
+
+
+#todo revisit good performing network
+# x = Conv2D(8,(2,2),activation='tanh')(input_img)
+#
+# flat_layer = Flatten()(x)
+# dense_layer = Dense(1, activation="tanh")(flat_layer)
+#
+# dense_feature_layer = Dense(int(28*28),activation="tanh")(dense_layer)
+# encoded = Reshape([28,28,1])(dense_feature_layer)
+# x = Conv2D(8,(2,2),activation='tanh',padding="same")(encoded)
+# decoded = Conv2D(1,(2,2),activation='tanh',padding='same')(x)
+# decoded = Add()([decoded,prev_approx_img])
+
+
+#todo revisit model without bias
+# x = Conv2D(8,(2,2),activation='tanh',use_bias=False)(input_img)
+#
+# # x = MaxPooling2D((2,2),padding='same')(x)
+# # x = Conv2D(8,(2,2),activation='tanh')(x)
+# # x = MaxPooling2D((2,2),padding='same')(x)
+# # x = Conv2D(8,(2,2),activation='tanh')(x)
+#
+# flat_layer = Flatten()(x)
+# dense_layer = Dense(1, activation="tanh",use_bias=False)(flat_layer)
+#
+# dense_feature_layer = Dense(int(28*28),activation="tanh",use_bias=False)(dense_layer)
+# encoded = Reshape([28,28,1])(dense_feature_layer)
+# x = Conv2D(8,(2,2),activation='tanh',padding="same",use_bias=False)(encoded)
+# decoded = Conv2D(1,(2,2),activation='tanh',padding='same',use_bias=False)(x)
+# decoded = Add()([decoded,prev_approx_img])
 
 
 
@@ -198,11 +224,6 @@ autoencoder = Model([input_img,prev_approx_img,target_img], decoded)
 autoencoder.add_loss(loss_value)
 autoencoder.compile(optimizer=optimizer_type)
 
-
-#
-# autoencoder = Model([input_img,target_img],decoded)
-# # autoencoder.add_loss(xent_loss)
-# autoencoder.compile(optimizer=optimizer_type,loss="mse")
 
 #encoder model
 encoder = Model (input_img,encoded)
@@ -265,7 +286,7 @@ else:
 
 
     else:
-        for i in range(3):
+        for i in range(6):
             autoencoder.load_weights("default_init_weights.kmdl")
             if RewardError:
                 pass
@@ -275,42 +296,16 @@ else:
             autoencoder.save_weights(model_weights_file_name+"_L"+str(i)+".kmdl")
             #now update the data for the next iteration.
             output_images = autoencoder.predict([source_images,x_train_approx,target_images])
-            output_images_iter_list.append(output_images)
             output_images_testSet = autoencoder.predict([x_test,x_test_approx,x_test])
-            output_images_testSet_iter_list.append(output_images_testSet)
-
-            n = 20  # number of images to be displayed
-            plt.figure(figsize=(n,4))
-            plt.suptitle(model_weights_file_name)
-            for i in range(n):
-                if i >= len(target_indices):
-                    break
-                ax = plt.subplot(2, n, i + 1)
-
-                plt.imshow(source_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
-
-                plt.gray()
-                ax.get_xaxis().set_visible(False)
-                ax.get_yaxis().set_visible(True)  # just for fun
-                # display reconstruction
-                ax = plt.subplot(2, n, i + 1 + n)
-                plt.imshow(output_images[target_indices[i]].reshape(x_train.shape[1], x_train.shape[2]))
-                # a = source_images[target_indices[i]].reshape(source_images[0].shape[:-1])
-                # b = decoded_imgs[target_indices[i]].reshape(source_images[0].shape[:-1])
-                # final_mse = mse(a,b)
-                # plt.title("mse=", str(final_mse))
-                plt.gray()
-                ax.get_xaxis().set_visible(False)
-                ax.get_yaxis().set_visible(False)
-            plt.show()
-
-            output_images_iter_list.append(output_images)
-            output_images_testSet_iter_list.append(output_images_testSet)
+            # output_images_iter_list.append(output_images)
+            # output_images_testSet_iter_list.append(output_images_testSet)
             x_train_approx = output_images # todo NOTE: do NOT compound the images, else the error of the first image adds on.
-            source_images = source_images - output_images # keep target images the same
-            #todo try a network that takes BOTH as input ?? UNLIKELY TO BE GOOD.
+            # source_images = source_images - output_images # keep target images the same
+            source_images = source_images # keep target images the same
+
             x_test_approx = output_images_testSet
-            x_test = x_test - output_images_testSet
+            # x_test = x_test - output_images_testSet
+            x_test = x_test
 
             # n = 20  # number of images to be displayed
             # plt.figure(figsize=(20, 4))
