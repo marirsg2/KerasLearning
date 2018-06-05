@@ -40,8 +40,9 @@ if RewardBasedResampling or Occlude or Invert_Img_Negative:
 
 # dict_num_reward = {0:1,     1:1,    2:1,    3:1,    4:1,    5:1,    6:1,    7:1,    8:1,  9:1}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0,    4:0,    5:0,    6:0,    7:0,    8:0,  9:0}
+dict_num_reward = {0:0,     1:1,    2:0,    3:0,    4:1,    5:0,    6:0,    7:1,    8:0,  9:0}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0.3,    4:0,    5:0,    6:0.3,    7:0,    8:1,  9:0}
-dict_num_reward = {0:0,     1:0,    2:0.5,    3:0,    4:0,    5:0,    6:0,    7:0,    8:0,  9:0 }
+# dict_num_reward = {0:0,     1:0,    2:1,    3:0,    4:0,    5:0,    6:0,    7:0,    8:0,  9:0 }
 
 
 def get_reward_string():
@@ -147,6 +148,7 @@ else: #dont resample
 
 
 x_test_approx = np.zeros(x_test.shape)
+x_test_target = copy.deepcopy(x_test)
 x_train_approx = np.zeros(x_train_original.shape)
 
 # encoding_dim = 32
@@ -266,12 +268,10 @@ else:
         for i in range(3):
             autoencoder.load_weights("default_init_weights.kmdl")
             if RewardError:
-                autoencoder.fit([source_images,target_images,x_train_reward],epochs=num_epochs ,batch_size=batch_size,
-                                shuffle=True,validation_data=([x_test,x_test,x_test_reward],None))
-                        # ,callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
+                pass
             else:
                 autoencoder.fit([source_images,x_train_approx,target_images],epochs=num_epochs ,batch_size=batch_size,
-                                shuffle=True,validation_data=([x_test,x_test_approx,x_test],None))
+                                shuffle=True,validation_data=([x_test,x_test_approx,x_test_target],None))
             autoencoder.save_weights(model_weights_file_name+"_L"+str(i)+".kmdl")
             #now update the data for the next iteration.
             output_images = autoencoder.predict([source_images,x_train_approx,target_images])
@@ -304,10 +304,13 @@ else:
                 ax.get_yaxis().set_visible(False)
             plt.show()
 
-
+            output_images_iter_list.append(output_images)
+            output_images_testSet_iter_list.append(output_images_testSet)
             x_train_approx = output_images # todo NOTE: do NOT compound the images, else the error of the first image adds on.
-            # source_images = source_images #YES keep the source and target images the same
+            source_images = source_images - output_images # keep target images the same
+            #todo try a network that takes BOTH as input ?? UNLIKELY TO BE GOOD.
             x_test_approx = output_images_testSet
+            x_test = x_test - output_images_testSet
 
             # n = 20  # number of images to be displayed
             # plt.figure(figsize=(20, 4))
