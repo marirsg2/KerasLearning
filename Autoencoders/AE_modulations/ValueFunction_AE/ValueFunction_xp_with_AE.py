@@ -18,7 +18,7 @@ train_model = True
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 5
-num_epochs = 4
+num_epochs = 3
 error_function = metrics.mse
 error_string = "mse"
 RewardError = True
@@ -29,7 +29,7 @@ InputToOutputType = 2 #1-True to True  2-True to MODIFIED 3-MODIFIED to True  4-
                     #the other option is True input to noisy output. Noisy to Noisy makes sense only because we never truly train
                     #on weaker images, we noise them , so pay less importance. if it is True to noisy, then we are learning to
                     #occlude , which is not really our goal
-Occlude = True
+Occlude = False
 Sparsity  = False
 Array_Error = True
 Invert_Img_Negative = False
@@ -42,7 +42,7 @@ if RewardBasedResampling or Occlude or Invert_Img_Negative:
 # dict_num_reward = {0:1,     1:1,    2:1,    3:1,    4:1,    5:1,    6:1,    7:1,    8:1,  9:1}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0,    4:0,    5:0,    6:0,    7:0,    8:0,  9:0}
 # dict_num_reward = {0:0,     1:0,    2:0,    3:0.3,    4:0,    5:0,    6:0.3,    7:0,    8:1,  9:0}
-dict_num_reward = {0:0.05,     1:-0.7,    2:0.05,    3:0.05,    4:-0.7,    5:0.05,    6:0.05,    7:0.05,    8:1,  9:0.05 }
+dict_num_reward = {0:0.05,     1:-0.7,    2:0.05,    3:0.05,    4:-0.7,    5:0.05,    6:0.05,    7:0.05,    8:0.9,  9:0.05 }
 
 
 

@@ -1,30 +1,11 @@
 
-===============================================================+++
-EXPERIMENT:
-
-GOAL: Does the AE make classification and value functions better. I THINK SO.
-Take reproduction and superimpose it. Many ways for that
-a) Use embedding for v()
-b) Give as a second channel input
-c) Multiply the inputs. or subtract the inputs, and then do a value function.
-
-1)
-
-Train on ALL MNIST. based on the reward described to the numbers. Use encoder as input to network for value function.
-    IMPORTANT! I think the input image and reproduced image is the input to the value function. Two image channels.
-        YAS ! the difference in the two is used to detect the value. MORE SO than the original image.
-        SO a 5 which looks like an 8, may get a higher value. But if the reproduction is worse, then the value is lower.
-        A BLOCKED (black or white or patchy) image is more like to be a negative value.
-Compare with: predict the reward with a separate value function. Same conv layers, and then fc to value
-Compare with: A network that has both the AE and value function parts.
-
-
-2) ? <LATER>Let the reward be stochastic !! mean and std deviation.
 
 
 
-===============================================================+++
 
-05292018
+SEE GOOGLE DOC. DO NOT USE THIS.
 
-1) CASE: The target image is occluded, and the reward is in the error, with neg values
+
+
+
+

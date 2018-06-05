@@ -14,27 +14,28 @@ from sklearn.metrics import mean_squared_error as mse
 from skimage.transform import rescale, resize, downscale_local_mean
 import matplotlib.pyplot as plt
 
-train_model = True
+train_model = False
 fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 20
 num_epochs = 2
 error_function = metrics.mse
 error_string = "mse"
-RewardError = True
+RewardError = False
 RewardBasedResampling = True
 min_num_resample_data_points = 10000
 #noisy to noisy only matters if occlude is true
-InputToOutputType = 1 #1-True to True  2-True to MODIFIED 3-MODIFIED to True  4-MODIFIED to MODIFIED
+InputToOutputType = 3 #1-True to True  2-True to MODIFIED 3-MODIFIED to True  4-MODIFIED to MODIFIED
                     #the other option is True input to noisy output. Noisy to Noisy makes sense only because we never truly train
                     #on weaker images, we noise them , so pay less importance. if it is True to noisy, then we are learning to
                     #occlude , which is not really our goal
 Occlude = False
+uniform_noising_amount = 0.5
 Sparsity  = False
 Array_Error = True
-Invert_Img_Negative = True
+Invert_Img_Negative = False
 Negative_Error_From_Reward = False #todo set to false as default
-Predict_on_test = True
+Predict_on_test = False
 Resample = False
 if RewardBasedResampling or Occlude or Invert_Img_Negative:
     Resample = True
@@ -116,17 +117,24 @@ def keep_sample_by_reward():
                 cumulative_reward += curr_reward#ONLY UPDATE if it was successfully sampled
                 main_image = copy.deepcopy(x_train[index])
 
+
+                noise_layer = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])  # THIS is the actual noise value. DIFFERENT from the one used to generate mask
+
+                if uniform_noising_amount > 0:
+                    main_image = np.clip(main_image + noise_layer,0,1)#since white is 1, this will work
+
+
                 #also modify the image by adding noise based on (1-reward)
                 if Occlude:
+                    #todo add a new separate noise layer if necessary, else keep it.
                     noise_mask = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])
                     noise_mask = np.less(noise_mask,1-abs(curr_reward))  # so if the noise factor was 0.4 (reward = 0.6), then
                     # only those nodes where value is less than 0.4 will be 1
-                    noise_layer = np.random.rand(x_train.shape[1], x_train.shape[2], x_train.shape[3])# THIS is the actual noise value. DIFFERENT from the one used to generate mask
                     # noise_layer = np.zeros(shape=(28, 28, 1)) #THIS is if you want the background to go to black.
                     main_image = main_image*(1 - noise_mask) + noise_layer * noise_mask
 
-                if True:#Invert_Img_Negative:
-                    if True:#curr_reward < 0:
+                if Invert_Img_Negative:
+                    if curr_reward < 0:
                         main_image = 1-main_image#yes this inverts mnist images
                         # plt.figure()
                         # plt.imshow(np.reshape(main_image,(28,28)))
@@ -149,7 +157,7 @@ def keep_sample_by_reward():
 
 #=============================
 
-if Resample and train_model:
+if Resample :
     keep_sample_by_reward()
 else: #dont resample
     x_train_target = x_train_original
@@ -330,6 +338,7 @@ for number in needed_numbers:
 
 
 #TODO CHANGE THE image to be overlayed on a static background, vs black background.
+
 #very different from training data.
 # for i in target_indices: #THIS IS FOR SIDE BY SIDE TWO NUMBERS, mediocre to bad performance. Manages to filter 1 and 4 to some degree of success
 #     a_image = resize(source_images[i].reshape(x_train.shape[1], x_train.shape[2]),(28,14))
@@ -338,7 +347,6 @@ for number in needed_numbers:
 #     # d_image = source_images[np.random.randint(0,len(y_target))].reshape(x_train.shape[1], x_train.shape[2])
 #     temp = np.concatenate((a_image,b_image),axis=1).reshape(x_train.shape[1], x_train.shape[2],x_train.shape[3])
 #     source_images[i] = temp
-
 
 # for i in target_indices: #This is for the original number with overlayed other numbers(UNSCALED)
 #     main_image = source_images[i]
