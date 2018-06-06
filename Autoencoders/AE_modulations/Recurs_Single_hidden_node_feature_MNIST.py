@@ -19,7 +19,10 @@ fraction_of_data = 1.0
 optimizer_type = 'adadelta'
 batch_size = 20
 num_epochs = 5
-error_function = metrics.mse
+
+def squared_error(a,b):
+    return K.square(a-b)
+error_function = squared_error # metrics.mse
 min_num_data_points = 3000
 RewardError = False
 RewardBasedResampling = True
@@ -216,7 +219,7 @@ decoded = Add()([decoded,prev_approx_img])
 
 
 if Array_Error:
-    loss_value = error_function(target_img, decoded)
+    loss_value = error_function(target_img,decoded)
 else:  # not array error
     loss_value = K.mean(error_function(target_img, decoded))
 
