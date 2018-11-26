@@ -1,9 +1,23 @@
-from keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D
+from keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D,Reshape
 from keras.models import Model
 from keras.datasets import mnist
 from keras import regularizers
 import numpy as np
+from functools import reduce
 from keras.callbacks import TensorBoard
+
+
+
+"""
+
+NOTES: you can add negative values in the final output by having a linear activation function layer. Use more
+of them to make the NN job easier. 
+The negative values allows you to adjust the image output to match the values needed for the image reconstruction.
+the error would be MSE for the approach you are thinking. 
+
+"""
+
+
 
 #prep the data
 (x_train,_) , (x_test,_) = mnist.load_data()
@@ -26,6 +40,16 @@ x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
 x = MaxPooling2D((2,2),padding='same')(x)
 x = Conv2D(8,(3,3),activation='relu', padding='same')(x)
 encoded = MaxPooling2D((2,2),padding='same')(x)
+dim_list = encoded.shape.as_list()
+dim_size = reduce(lambda x,y:x*y, dim_list[1:])
+btl = Reshape((dim_size,))(encoded)
+# btl = Dense(1,activation='relu')(btl)
+btl = Dense(1,activation='softmax')(btl)
+btl = Dense(dim_size,activation='relu')(btl)
+encoded = Reshape(dim_list[1:])(btl)
+
+# make it a vector, pass through a fc layer to bottlneck, then unravel to same size and continue
+# first test it with a pass through fc. see if the information passes through.
 
 
 # from 28x28, max pooled thrice with same padding. 28-14-7-4. 7->4 is with same padding
@@ -37,12 +61,14 @@ x = UpSampling2D((2,2))(x)
 #todo NOTICE there is no padding here, to match the dimensions needed.
 x = Conv2D(16,(3,3),activation='relu')(x)
 x = UpSampling2D((2,2))(x)
-decoded = Conv2D(1,(3,3),activation='sigmoid',padding='same')(x)
+# decoded = Conv2D(1,(3,3),activation='sigmoid',padding='same')(x)
+decoded = Conv2D(1,(3,3),activation='relu',padding='same')(x)
 
 
 #full AE model
 autoencoder = Model(input_img,decoded)
-autoencoder.compile(optimizer='adadelta', loss = 'binary_crossentropy')
+# autoencoder.compile(optimizer='adadelta', loss = 'binary_crossentropy')
+autoencoder.compile(optimizer='adadelta', loss = 'mse')
 # autoencoder.compile(optimizer='adadelta', loss = 'mse')
 #encoder model
 encoder = Model (input_img,encoded)
@@ -52,7 +78,7 @@ encoder = Model (input_img,encoded)
 if not train_model:
     autoencoder.load_weights(filepath=model_weights_file)
 else:
-    autoencoder.fit(x_train,x_train,epochs=50,batch_size=256,
+    autoencoder.fit(x_train,x_train,epochs=15,batch_size=256,
                     shuffle=True,validation_data=(x_test,x_test),
                     callbacks=[TensorBoard(log_dir='/tmp/autoencoder')])
     autoencoder.save_weights(model_weights_file)

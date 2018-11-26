@@ -185,8 +185,6 @@ decoded = Conv2D(1,(2,2),activation='tanh',padding='same')(x)
 decoded = Add()([decoded,prev_approx_img])
 
 
-
-
 if Array_Error:
     loss_value = error_function(target_img, decoded)
 else:  # not array error

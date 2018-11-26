@@ -1,12 +1,12 @@
 
 
-0.
-When a layer is initialized with an input, the output is a TENSOR object THAT is ??
-ALSO connected to layer !!! .
-the input is also a TENSOR object. To manipulate these, need to use the backend
-functions , such as when you want to calculate the mean and such.
+When a layer is initialized with an input, the output is a layer object primarily defined by a TENSOR
 
 1. You can write a function and have a "lambda" layer in keras
+        single_embedding =  Lambda(lambda inp: K.sum(inp,axis=-1,keepdims=True), output_shape= lambda s: (s[0],1))(x)
+        NOTE the output shape is stored as calculated and Must agree WITH THE shape of the RESULT of the calculation
+        else you will see errors during compiling to the effect of dimensions dont match.
+        ADDITIONAL: https://github.com/keras-team/keras/issues/3703
 
 2. Check out the many loss functions, including cosine proximity, read carefully before use)
 

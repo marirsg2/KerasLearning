@@ -2,6 +2,22 @@
 
 
 
+
+TIME DISTRIBUTED USAGE
+
+YOUR Stack overflow question
+https://stackoverflow.com/questions/49540252/keras-lstm-with-stateful-in-reinforcement-learning
+
+you had applied time distributed to EACH layer of the visual processing part of the model
+INSTEAD
+"You are not supposed to apply TimeDistributed to each layer of the visual model, but instead to define an visual model
+and then apply a TimeDistributed to it once"
+
+
+
+
+===============================================================================
+
 IMPORTANT: NEED TO SAVE BOTH states AND weights, TO RECOVER  complete lstm/memory based model.
 The weights are correlated to the mem states, so just recovering the state is useless. !!
 
